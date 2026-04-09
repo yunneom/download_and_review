@@ -1,0 +1,37 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+    "python.terminal.activateEnvironment": true,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}\\.venv\\Lib\\site-packages"
+    ],
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingModuleSource": "none",
+        "reportMissingTypeStubs": "none",
+        "reportOptionalMemberAccess": "none",
+        "reportOptionalSubscript": "none",
+        "reportArgumentType": "none",
+        "reportCallIssue": "none",
+        "reportOperatorIssue": "none",
+        "reportIndexIssue": "none",
+        "reportGeneralTypeIssues": "none",
+        "reportPrivateUsage": "none"
+    },
+    "python.analysis.include": [
+        "."
+    ],
+    "python.analysis.exclude": [
+        ".venv",
+        "**/__pycache__"
+    ],
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.venv": true,
+        "**/downloads": false
+    },
+    "[python]": {
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": null
+    },
+    "python-envs.defaultEnvManager": "ms-python.python:venv"
+}

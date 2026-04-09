@@ -1,0 +1,31 @@
+# 환경변수 (AWS 키 등)
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# 가상환경
+.venv/
+venv/
+
+# 다운로드 데이터
+downloads/
+
+# 로그
+*.log
+
+# CSV/Parquet 데이터 파일 (루트)
+*.csv
+*.parquet
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
