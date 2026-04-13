@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRDMRT · BMS 결과 뷰어</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:      #0d1b2a;
+    --bg2:     #132236;
+    --card:    #1a2e45;
+    --text:    #e8f0fe;
+    --muted:   #8a9abb;
+    --pass:    #00c4a0;
+    --fail:    #ff5a5a;
+    --warn:    #f5a623;
+    --na:      #7a8fa8;
+    --primary: #1a6bcc;
+    --accent:  #00c4a0;
+  }
+  body { font-family: 'Segoe UI','Malgun Gothic',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg,#0f3055,#1a2e45);
+    padding: 18px 32px;
+    display: flex; align-items: center; gap: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .header h1 { font-size: 18px; font-weight: 800; }
+  .header .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ── DROP ZONE ── */
+  #drop-zone {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: calc(100vh - 64px);
+    gap: 16px;
+  }
+  .drop-box {
+    border: 2px dashed rgba(0,196,160,0.35);
+    border-radius: 20px;
+    padding: 60px 80px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(0,196,160,0.03);
+    max-width: 500px;
+    width: 90%;
+  }
+  .drop-box:hover, .drop-box.dragover {
+    border-color: var(--accent);
+    background: rgba(0,196,160,0.07);
+  }
+  .drop-box .icon { font-size: 52px; margin-bottom: 14px; }
+  .drop-box h2 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .drop-box p { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .browse-btn {
+    margin-top: 20px;
+    padding: 9px 28px;
+    background: var(--primary);
+    border: none; border-radius: 20px;
+    color: white; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .browse-btn:hover { background: #0f4a99; }
+  #file-input { display: none; }
+
+  /* ── MAIN DASHBOARD ── */
+  #dashboard { display: none; padding: 20px 32px 60px; }
+
+  /* file bar */
+  .file-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: var(--bg2);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    margin-bottom: 18px;
+    font-size: 13px;
+  }
+  .file-bar .fname { color: var(--accent); font-weight: 600; }
+  .file-bar .fmeta { color: var(--muted); font-size: 11px; }
+  .file-bar .reload-btn {
+    margin-left: auto;
+    padding: 5px 14px;
+    border-radius: 14px; border: 1px solid rgba(255,255,255,0.15);
+    background: none; color: var(--muted); font-size: 12px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .file-bar .reload-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* summary strip */
+  .summary-strip {
+    display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; align-items: stretch;
+  }
+  .stat-card {
+    flex: 1; min-width: 100px;
+    padding: 14px 16px; border-radius: 12px; text-align: center;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .stat-card .num { font-size: 32px; font-weight: 800; line-height: 1; }
+  .stat-card .lbl { font-size: 11px; margin-top: 5px; }
+  .stat-pass { background: rgba(0,196,160,0.10);  }
+  .stat-fail { background: rgba(255,90,90,0.10);  }
+  .stat-warn { background: rgba(245,166,35,0.10); }
+  .stat-na   { background: rgba(122,143,168,0.10);}
+
+  /* donut */
+  .donut-wrap {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 20px; border-radius: 12px;
+    background: var(--card); border: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+  }
+  .donut { position: relative; width: 80px; height: 80px; }
+  .donut svg { transform: rotate(-90deg); }
+  .donut .pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: var(--pass); }
+  .legend { display: flex; flex-direction: column; gap: 5px; font-size: 12px; }
+  .legend li { display: flex; align-items: center; gap: 7px; list-style: none; }
+  .dot-c { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* group bars */
+  .group-panel {
+    flex: 1; padding: 14px 18px; border-radius: 12px;
+    background: var(--card); border: 1px solid rgba(255,255,255,0.07);
+    display: flex; flex-direction: column; gap: 8px; justify-content: center;
+  }
+  .gbar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .gbar-label { min-width: 90px; color: var(--muted); }
+  .gbar-track { flex: 1; height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+  .gbar-fill  { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+
+  /* filter + search */
+  .ctrl-bar {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    padding: 12px 0; margin-bottom: 10px;
+  }
+  .ctrl-bar .lbl { font-size: 12px; color: var(--muted); }
+  .fbtn {
+    padding: 4px 14px; border-radius: 16px; border: 1px solid;
+    background: transparent; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.15s;
+  }
+  .fbtn-pass { border-color: var(--pass); color: var(--pass); background: rgba(0,196,160,0.12); }
+  .fbtn-fail { border-color: var(--fail); color: var(--fail); background: rgba(255,90,90,0.12); }
+  .fbtn-warn { border-color: var(--warn); color: var(--warn); background: rgba(245,166,35,0.12); }
+  .fbtn-na   { border-color: var(--na);   color: var(--na);   background: rgba(122,143,168,0.12); }
+  .fbtn.off  { border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.25); background: transparent; }
+  .search-box {
+    margin-left: auto; padding: 5px 14px;
+    border-radius: 16px; border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04); color: var(--text); font-size: 12px; outline: none;
+    min-width: 200px;
+  }
+  .search-box::placeholder { color: #4a6a8a; }
+
+  /* table */
+  .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,0.07); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: rgba(26,107,204,0.18); color: var(--accent);
+    font-weight: 600; text-align: left; padding: 10px 13px;
+    font-size: 11px; letter-spacing: 0.5px;
+    position: sticky; top: 0; z-index: 10; cursor: pointer; user-select: none;
+  }
+  thead th:hover { background: rgba(26,107,204,0.28); }
+  thead th .sort-icon { font-size: 10px; margin-left: 4px; opacity: 0.4; }
+  thead th.sorted .sort-icon { opacity: 1; color: white; }
+  td { padding: 9px 13px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; }
+  tr:hover td { background: rgba(255,255,255,0.03); }
+  tr.hidden { display: none; }
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 11px; font-weight: 700;
+  }
+  .b-pass { background: rgba(0,196,160,0.15); color: var(--pass); }
+  .b-fail { background: rgba(255,90,90,0.15); color: var(--fail); }
+  .b-warn { background: rgba(245,166,35,0.15); color: var(--warn); }
+  .b-na   { background: rgba(122,143,168,0.15); color: var(--na); }
+  .detail-line { font-size: 11px; color: var(--muted); font-family: Consolas,monospace; margin-top: 3px; }
+
+  /* no-result */
+  .no-result { padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
+
+  /* print */
+  @media print {
+    .header, .file-bar .reload-btn, .ctrl-bar, .donut-wrap, .group-panel { display: none !important; }
+    body { background: #fff; color: #000; }
+    table { font-size: 11px; }
+    thead th { background: #dce6f0 !important; color: #000 !important; }
+    .badge { border: 1px solid #ccc !important; background: transparent !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="header">
+  <div>
+    <h1>🔋 PRDMRT · BMS 결과 뷰어</h1>
+    <div class="sub">검증 결과 CSV/XLSX를 드래그하거나 파일을 선택해 불러오세요</div>
+  </div>
+  <div style="margin-left:auto; display:flex; gap:8px;">
+    <button class="reload-btn" style="padding:6px 16px; border-radius:14px; border:1px solid rgba(255,255,255,0.15); background:none; color:var(--muted); font-size:12px; cursor:pointer;" onclick="printReport()">🖨 인쇄 / PDF</button>
+  </div>
+</header>
+
+<!-- ── DROP ZONE ── -->
+<div id="drop-zone">
+  <div class="drop-box" id="drop-box">
+    <div class="icon">📂</div>
+    <h2>결과 파일을 여기에 드래그</h2>
+    <p>
+      PRDMRT가 생성한 <strong style="color:var(--accent);">CSV</strong> 또는
+      <strong style="color:var(--accent);">XLSX</strong> 검증 결과 파일을<br>
+      이 영역에 드래그하거나 아래 버튼으로 선택하세요.
+    </p>
+    <button class="browse-btn" onclick="document.getElementById('file-input').click()">파일 선택</button>
+    <input type="file" id="file-input" accept=".csv,.xlsx,.xls">
+  </div>
+  <div style="font-size:12px; color:var(--muted); margin-top:4px;">
+    Python / Excel 없이 브라우저만으로 결과 확인 가능
+  </div>
+</div>
+
+<!-- ── DASHBOARD ── -->
+<div id="dashboard">
+  <!-- file info bar -->
+  <div class="file-bar">
+    <span>📄</span>
+    <div>
+      <div class="fname" id="fname">—</div>
+      <div class="fmeta" id="fmeta">—</div>
+    </div>
+    <button class="reload-btn" onclick="resetViewer()">← 다른 파일 열기</button>
+  </div>
+
+  <!-- summary -->
+  <div class="summary-strip">
+    <div class="donut-wrap">
+      <div class="donut">
+        <svg viewBox="0 0 64 64" width="80" height="80">
+          <circle id="arc-bg"   cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+          <circle id="arc-pass" cx="32" cy="32" r="26" fill="none" stroke="var(--pass)" stroke-width="10"/>
+          <circle id="arc-fail" cx="32" cy="32" r="26" fill="none" stroke="var(--fail)" stroke-width="10"/>
+          <circle id="arc-warn" cx="32" cy="32" r="26" fill="none" stroke="var(--warn)" stroke-width="10"/>
+          <circle id="arc-na"   cx="32" cy="32" r="26" fill="none" stroke="var(--na)"   stroke-width="10"/>
+        </svg>
+        <div class="pct" id="pass-pct">—</div>
+      </div>
+      <ul class="legend">
+        <li><span class="dot-c" style="background:var(--pass);"></span><span id="leg-pass">PASS 0</span></li>
+        <li><span class="dot-c" style="background:var(--fail);"></span><span id="leg-fail">FAIL 0</span></li>
+        <li><span class="dot-c" style="background:var(--warn);"></span><span id="leg-warn">WARNING 0</span></li>
+        <li><span class="dot-c" style="background:var(--na);"></span><span id="leg-na">N/A 0</span></li>
+      </ul>
+    </div>
+
+    <div class="stat-card stat-pass">
+      <div class="num" style="color:var(--pass);" id="cnt-pass">0</div>
+      <div class="lbl" style="color:var(--pass);">PASS</div>
+    </div>
+    <div class="stat-card stat-fail">
+      <div class="num" style="color:var(--fail);" id="cnt-fail">0</div>
+      <div class="lbl" style="color:var(--fail);">FAIL</div>
+    </div>
+    <div class="stat-card stat-warn">
+      <div class="num" style="color:var(--warn);" id="cnt-warn">0</div>
+      <div class="lbl" style="color:var(--warn);">WARNING</div>
+    </div>
+    <div class="stat-card stat-na">
+      <div class="num" style="color:var(--na);" id="cnt-na">0</div>
+      <div class="lbl" style="color:var(--na);">N/A</div>
+    </div>
+
+    <div class="group-panel" id="group-panel"></div>
+  </div>
+
+  <!-- controls -->
+  <div class="ctrl-bar">
+    <span class="lbl">필터:</span>
+    <button class="fbtn fbtn-pass" data-status="PASS"    onclick="toggleFilter(this)">PASS</button>
+    <button class="fbtn fbtn-fail" data-status="FAIL"    onclick="toggleFilter(this)">FAIL</button>
+    <button class="fbtn fbtn-warn" data-status="WARNING" onclick="toggleFilter(this)">WARNING</button>
+    <button class="fbtn fbtn-na"   data-status="N/A"     onclick="toggleFilter(this)">N/A</button>
+    <input class="search-box" type="text" id="search-box" placeholder="ID / Column / Check 검색..." oninput="applyFilter()">
+  </div>
+
+  <!-- table -->
+  <div class="table-wrap">
+    <table id="result-table">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)" data-col="0">ID <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(1)" data-col="1">Column <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(2)" data-col="2">Check <span class="sort-icon">↕</span></th>
+          <th>Criteria</th>
+          <th onclick="sortTable(4)" data-col="4" style="text-align:center;">Status <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(5)" data-col="5" style="text-align:center;">Fail Count <span class="sort-icon">↕</span></th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="no-result" id="no-result" style="display:none;">표시할 결과가 없습니다.</div>
+  </div>
+</div>
+
+<!-- PapaParse for CSV parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<!-- SheetJS for XLSX parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+// ── STATE ──
+const active = { PASS: true, FAIL: true, WARNING: true, 'N/A': true };
+let allRows = [];
+let sortCol = -1, sortAsc = true;
+
+const GROUPS = {
+  'A 기본 상태':   ['1-','2-','3-','4-','5-','6-','7-','8-','9-','10-'],
+  'B 셀 전압':     ['11-','12-','13-','14-','15-','16-'],
+  'C 모듈 온도':   ['17-','18-','19-','20-'],
+  'D 에너지·전력': ['21-','22-','23-','24-','25-','26-','27-'],
+  'E 복합 로직':   ['28-','29-','30-','31-','32-','33-','34-','35-'],
+};
+
+const STATUS_BADGE = {
+  'PASS':    '<span class="badge b-pass">PASS</span>',
+  'FAIL':    '<span class="badge b-fail">FAIL</span>',
+  'WARNING': '<span class="badge b-warn">WARNING</span>',
+  'N/A':     '<span class="badge b-na">N/A</span>',
+};
+
+const STATUS_COLORS = {
+  'PASS': 'var(--pass)', 'FAIL': 'var(--fail)', 'WARNING': 'var(--warn)', 'N/A': 'var(--na)'
+};
+
+// ── FILE HANDLING ──
+const dropBox = document.getElementById('drop-box');
+const fileInput = document.getElementById('file-input');
+
+dropBox.addEventListener('dragover', e => { e.preventDefault(); dropBox.classList.add('dragover'); });
+dropBox.addEventListener('dragleave', () => dropBox.classList.remove('dragover'));
+dropBox.addEventListener('drop', e => {
+  e.preventDefault(); dropBox.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+function loadFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'csv') {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const result = Papa.parse(ev.target.result, { header: true, skipEmptyLines: true });
+      renderDashboard(result.data, file.name);
+    };
+    reader.readAsText(file, 'utf-8');
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const wb = XLSX.read(ev.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      renderDashboard(data, file.name);
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    alert('CSV 또는 XLSX 파일만 지원합니다.');
+  }
+}
+
+// ── RENDER ──
+function renderDashboard(data, filename) {
+  allRows = data;
+
+  // counts
+  const counts = { PASS: 0, FAIL: 0, WARNING: 0, 'N/A': 0 };
+  data.forEach(r => { const s = r.Status || ''; if (s in counts) counts[s]++; });
+  const total = data.length;
+  const passPct = total ? Math.round(counts.PASS / total * 100) : 0;
+
+  // update stat cards
+  document.getElementById('cnt-pass').textContent = counts.PASS;
+  document.getElementById('cnt-fail').textContent = counts.FAIL;
+  document.getElementById('cnt-warn').textContent = counts.WARNING;
+  document.getElementById('cnt-na').textContent   = counts['N/A'];
+  document.getElementById('pass-pct').textContent = passPct + '%';
+  document.getElementById('leg-pass').textContent = 'PASS ' + counts.PASS;
+  document.getElementById('leg-fail').textContent = 'FAIL ' + counts.FAIL;
+  document.getElementById('leg-warn').textContent = 'WARNING ' + counts.WARNING;
+  document.getElementById('leg-na').textContent   = 'N/A ' + counts['N/A'];
+
+  // donut arcs
+  const circ = 2 * Math.PI * 26;
+  let offset = 0;
+  [['pass', counts.PASS], ['fail', counts.FAIL], ['warn', counts.WARNING], ['na', counts['N/A']]].forEach(([key, cnt]) => {
+    const arc = total ? (cnt / total) * circ : 0;
+    const el = document.getElementById('arc-' + key);
+    el.setAttribute('stroke-dasharray', `${arc.toFixed(1)} ${(circ - arc).toFixed(1)}`);
+    el.setAttribute('stroke-dashoffset', (-offset).toFixed(1));
+    offset += arc;
+  });
+
+  // group bars
+  const panel = document.getElementById('group-panel');
+  panel.innerHTML = '';
+  Object.entries(GROUPS).forEach(([gname, prefixes]) => {
+    const gRows = data.filter(r => prefixes.some(p => (r.ID || '').startsWith(p)));
+    const gPass = gRows.filter(r => r.Status === 'PASS').length;
+    const gTotal = gRows.length;
+    const pct = gTotal ? Math.round(gPass / gTotal * 100) : 0;
+    const color = pct >= 80 ? 'var(--pass)' : pct >= 50 ? 'var(--warn)' : 'var(--fail)';
+    panel.innerHTML += `
+      <div class="gbar-row">
+        <span class="gbar-label">${gname}</span>
+        <div class="gbar-track"><div class="gbar-fill" style="width:${pct}%; background:${color};"></div></div>
+        <span style="font-size:11px; color:${color}; min-width:36px; text-align:right;">${pct}%</span>
+      </div>`;
+  });
+
+  // file info
+  document.getElementById('fname').textContent = filename;
+  document.getElementById('fmeta').textContent =
+    `총 ${total}개 항목 · FAIL ${counts.FAIL}개 · ` + new Date().toLocaleString('ko-KR');
+
+  // show dashboard
+  document.getElementById('drop-zone').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tbody');
+  const searchTerm = (document.getElementById('search-box')?.value || '').toLowerCase();
+
+  let rows = [...allRows];
+
+  // sort
+  if (sortCol >= 0) {
+    const keys = ['ID', 'Column', 'Check', 'Criteria', 'Status', 'Fail_Count', 'Details'];
+    const key = keys[sortCol];
+    rows.sort((a, b) => {
+      const av = sortCol === 5 ? Number(a[key] || 0) : String(a[key] || '');
+      const bv = sortCol === 5 ? Number(b[key] || 0) : String(b[key] || '');
+      if (av < bv) return sortAsc ? -1 : 1;
+      if (av > bv) return sortAsc ? 1 : -1;
+      return 0;
+    });
+  }
+
+  tbody.innerHTML = '';
+  let visible = 0;
+  rows.forEach(r => {
+    const sts = r.Status || '';
+    const id  = (r.ID || '').toLowerCase();
+    const col = (r.Column || '').toLowerCase();
+    const chk = (r.Check || '').toLowerCase();
+    const matchFilter = active[sts] !== false;
+    const matchSearch = !searchTerm || id.includes(searchTerm) || col.includes(searchTerm) || chk.includes(searchTerm);
+    const show = matchFilter && matchSearch;
+    if (show) visible++;
+
+    const cnt = r.Fail_Count;
+    const det = String(r.Details || '');
+    const cntHtml = (sts === 'FAIL' || sts === 'WARNING') && cnt
+      ? `<span style="color:${STATUS_COLORS[sts]};font-weight:700;">${cnt}</span>`
+      : `<span style="color:#4a6a8a;">0</span>`;
+    const cri = (r.Criteria || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const detEsc = det.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const detHtml = det && det !== '정상' && det !== '0'
+      ? `<div class="detail-line">${detEsc}</div>` : '';
+
+    const tr = document.createElement('tr');
+    if (!show) tr.classList.add('hidden');
+    tr.innerHTML = `
+      <td style="color:#4a7aaa;font-weight:700;white-space:nowrap;">${r.ID||''}</td>
+      <td style="font-family:Consolas,monospace;font-size:12px;">${r.Column||''}</td>
+      <td>${r.Check||''}</td>
+      <td style="font-size:12px;color:var(--muted);">${cri}</td>
+      <td style="text-align:center;">${STATUS_BADGE[sts] || sts}</td>
+      <td style="text-align:center;">${cntHtml}</td>
+      <td>${detHtml}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const noResult = document.getElementById('no-result');
+  noResult.style.display = visible === 0 ? 'block' : 'none';
+}
+
+function applyFilter() { renderTable(); }
+
+function toggleFilter(btn) {
+  const sts = btn.dataset.status;
+  active[sts] = !active[sts];
+  const baseClass = { PASS:'fbtn-pass', FAIL:'fbtn-fail', WARNING:'fbtn-warn', 'N/A':'fbtn-na' }[sts];
+  btn.className = 'fbtn ' + (active[sts] ? baseClass : 'off');
+  applyFilter();
+}
+
+function sortTable(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+
+  document.querySelectorAll('thead th').forEach((th, i) => {
+    th.classList.toggle('sorted', i === col);
+    const icon = th.querySelector('.sort-icon');
+    if (icon) icon.textContent = i === col ? (sortAsc ? '↑' : '↓') : '↕';
+  });
+  renderTable();
+}
+
+function resetViewer() {
+  allRows = [];
+  sortCol = -1; sortAsc = true;
+  document.getElementById('search-box').value = '';
+  Object.keys(active).forEach(k => active[k] = true);
+  document.querySelectorAll('.fbtn').forEach(b => {
+    const sts = b.dataset.status;
+    const baseClass = { PASS:'fbtn-pass', FAIL:'fbtn-fail', WARNING:'fbtn-warn', 'N/A':'fbtn-na' }[sts];
+    b.className = 'fbtn ' + (baseClass || '');
+  });
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('drop-zone').style.display = 'flex';
+  document.getElementById('file-input').value = '';
+}
+
+function printReport() { window.print(); }
+</script>
+</body>
+</html>

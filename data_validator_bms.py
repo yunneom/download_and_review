@@ -2114,3 +2114,245 @@ class BMSDataValidator:
         wb.save(output_path)
         logger.info(f"검증 리포트 저장 완료: {output_path}")
         print(f"검증 리포트 저장: {output_path}")
+
+    def generate_html_report(self, output_path, source_file_path=None):
+        """
+        검증 결과를 HTML 파일로 저장 (브라우저에서 바로 열람 가능)
+        :param output_path: 출력 HTML 파일 경로
+        :param source_file_path: 원본 데이터 파일 경로 (헤더 표시용)
+        """
+        if not self.results:
+            logger.warning("저장할 검증 결과가 없습니다.")
+            return
+
+        from datetime import datetime
+
+        counts = {'PASS': 0, 'FAIL': 0, 'WARNING': 0, 'N/A': 0}
+        for r in self.results:
+            s = r.get('Status', '')
+            if s in counts:
+                counts[s] += 1
+
+        total = sum(counts.values())
+        pass_pct = round(counts['PASS'] / total * 100) if total else 0
+
+        vehicle_info = f"{self.vehicle_model or ''} {self.fleet or ''}".strip()
+        source_name = os.path.basename(source_file_path) if source_file_path else ''
+        generated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        STATUS_COLOR = {
+            'PASS':    ('#00c4a0', 'rgba(0,196,160,0.12)'),
+            'FAIL':    ('#ff5a5a', 'rgba(255,90,90,0.12)'),
+            'WARNING': ('#f5a623', 'rgba(245,166,35,0.12)'),
+            'N/A':     ('#7a8fa8', 'rgba(122,143,168,0.12)'),
+        }
+
+        def row_html(r):
+            sid = r.get('ID', '')
+            col = r.get('Column', '')
+            chk = r.get('Check', '')
+            cri = r.get('Criteria', '').replace('<', '&lt;').replace('>', '&gt;')
+            sts = r.get('Status', '')
+            cnt = r.get('Fail_Count', 0)
+            det = str(r.get('Details', '')).replace('<', '&lt;').replace('>', '&gt;')
+            fg, bg = STATUS_COLOR.get(sts, ('#e8f0fe', 'transparent'))
+            fail_cnt_html = (
+                f'<span style="color:{fg}; font-weight:700;">{cnt}</span>'
+                if sts in ('FAIL', 'WARNING') and cnt else
+                '<span style="color:#4a6a8a;">0</span>'
+            )
+            badge = (
+                f'<span style="display:inline-block; padding:2px 10px; border-radius:10px;'
+                f' font-size:11px; font-weight:700; background:{bg}; color:{fg};">{sts}</span>'
+            )
+            detail_html = ''
+            if det and det not in ('정상', '0'):
+                detail_html = (
+                    f'<div style="font-size:11px; color:#8a9abb; margin-top:3px;'
+                    f' font-family:Consolas,monospace;">{det}</div>'
+                )
+            return (
+                f'<tr>'
+                f'<td style="color:#4a7aaa; font-weight:700; white-space:nowrap;">{sid}</td>'
+                f'<td style="font-family:Consolas,monospace; font-size:12px;">{col}</td>'
+                f'<td>{chk}</td>'
+                f'<td style="font-size:12px; color:#8a9abb;">{cri}</td>'
+                f'<td style="text-align:center;">{badge}</td>'
+                f'<td style="text-align:center;">{fail_cnt_html}</td>'
+                f'<td><div style="font-size:12px;">{det if not detail_html else ""}</div>{detail_html}</td>'
+                f'</tr>'
+            )
+
+        rows_html = '\n'.join(row_html(r) for r in self.results)
+
+        # donut SVG (pass arc)
+        circ = 2 * 3.14159 * 26
+        pass_arc  = round(circ * counts['PASS']    / total, 1) if total else 0
+        fail_arc  = round(circ * counts['FAIL']    / total, 1) if total else 0
+        warn_arc  = round(circ * counts['WARNING'] / total, 1) if total else 0
+        na_arc    = round(circ * counts['N/A']     / total, 1) if total else 0
+        off_fail  = -pass_arc
+        off_warn  = -(pass_arc + fail_arc)
+        off_na    = -(pass_arc + fail_arc + warn_arc)
+
+        html = f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMS 검증 리포트 — {vehicle_info}</title>
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ font-family: 'Segoe UI','Malgun Gothic',sans-serif; background:#0d1b2a; color:#e8f0fe; }}
+  .header {{ background: linear-gradient(135deg,#0f3055,#1a2e45); padding:28px 40px 22px; border-bottom:1px solid rgba(255,255,255,0.08); }}
+  .header h1 {{ font-size:22px; font-weight:800; margin-bottom:6px; }}
+  .header .meta {{ font-size:12px; color:#8a9abb; }}
+  .summary {{ display:flex; gap:14px; padding:20px 40px; background:#132236; border-bottom:1px solid rgba(255,255,255,0.06); flex-wrap:wrap; align-items:center; }}
+  .stat {{ text-align:center; padding:10px 18px; border-radius:10px; min-width:80px; }}
+  .stat .num {{ font-size:28px; font-weight:800; line-height:1; }}
+  .stat .lbl {{ font-size:11px; margin-top:4px; }}
+  .donut {{ position:relative; width:72px; height:72px; margin-right:8px; flex-shrink:0; }}
+  .donut svg {{ transform:rotate(-90deg); }}
+  .donut .pct {{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; color:#00c4a0; }}
+  .filter-bar {{ padding:14px 40px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; background:#0d1b2a; border-bottom:1px solid rgba(255,255,255,0.05); }}
+  .filter-bar span {{ font-size:12px; color:#8a9abb; margin-right:4px; }}
+  .fbtn {{ padding:4px 14px; border-radius:16px; border:1px solid; background:transparent; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.15s; }}
+  .fbtn.active-pass {{ background:rgba(0,196,160,0.15); border-color:#00c4a0; color:#00c4a0; }}
+  .fbtn.active-fail {{ background:rgba(255,90,90,0.15); border-color:#ff5a5a; color:#ff5a5a; }}
+  .fbtn.active-warn {{ background:rgba(245,166,35,0.15); border-color:#f5a623; color:#f5a623; }}
+  .fbtn.active-na   {{ background:rgba(122,143,168,0.15); border-color:#7a8fa8; color:#7a8fa8; }}
+  .fbtn.off {{ border-color:rgba(255,255,255,0.15); color:rgba(255,255,255,0.25); }}
+  .search {{ margin-left:auto; padding:5px 12px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:#e8f0fe; font-size:12px; outline:none; }}
+  .search::placeholder {{ color:#4a6a8a; }}
+  .table-wrap {{ padding:20px 40px 60px; overflow-x:auto; }}
+  table {{ width:100%; border-collapse:collapse; font-size:13px; }}
+  th {{ background:rgba(26,107,204,0.18); color:#00c4a0; font-weight:600; text-align:left; padding:10px 12px; font-size:11px; letter-spacing:0.5px; position:sticky; top:0; }}
+  td {{ padding:9px 12px; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:top; }}
+  tr:hover td {{ background:rgba(255,255,255,0.03); }}
+  tr.hidden {{ display:none; }}
+  .footer {{ text-align:center; padding:16px; font-size:11px; color:#4a6a8a; border-top:1px solid rgba(255,255,255,0.05); }}
+  @media print {{
+    .filter-bar, .footer {{ display:none; }}
+    body {{ background:#fff; color:#000; }}
+    table {{ font-size:11px; }}
+    th {{ background:#dce6f0 !important; color:#000 !important; }}
+  }}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔋 BMS 데이터 검증 리포트</h1>
+  <div class="meta">
+    차량: <strong style="color:#e8f0fe;">{vehicle_info or 'N/A'}</strong>
+    {('&nbsp;·&nbsp; 파일: <strong style="color:#e8f0fe;">' + source_name + '</strong>') if source_name else ''}
+    &nbsp;·&nbsp; 생성: {generated_at}
+  </div>
+</div>
+
+<div class="summary">
+  <div class="donut">
+    <svg viewBox="0 0 64 64" width="72" height="72">
+      <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+      <circle cx="32" cy="32" r="26" fill="none" stroke="#00c4a0" stroke-width="10"
+              stroke-dasharray="{pass_arc} {round(circ - pass_arc,1)}" stroke-dashoffset="0"/>
+      <circle cx="32" cy="32" r="26" fill="none" stroke="#ff5a5a" stroke-width="10"
+              stroke-dasharray="{fail_arc} {round(circ - fail_arc,1)}" stroke-dashoffset="{off_fail}"/>
+      <circle cx="32" cy="32" r="26" fill="none" stroke="#f5a623" stroke-width="10"
+              stroke-dasharray="{warn_arc} {round(circ - warn_arc,1)}" stroke-dashoffset="{off_warn}"/>
+      <circle cx="32" cy="32" r="26" fill="none" stroke="#7a8fa8" stroke-width="10"
+              stroke-dasharray="{na_arc} {round(circ - na_arc,1)}" stroke-dashoffset="{off_na}"/>
+    </svg>
+    <div class="pct">{pass_pct}%</div>
+  </div>
+  <div class="stat" style="background:rgba(0,196,160,0.10);">
+    <div class="num" style="color:#00c4a0;">{counts['PASS']}</div>
+    <div class="lbl" style="color:#00c4a0;">PASS</div>
+  </div>
+  <div class="stat" style="background:rgba(255,90,90,0.10);">
+    <div class="num" style="color:#ff5a5a;">{counts['FAIL']}</div>
+    <div class="lbl" style="color:#ff5a5a;">FAIL</div>
+  </div>
+  <div class="stat" style="background:rgba(245,166,35,0.10);">
+    <div class="num" style="color:#f5a623;">{counts['WARNING']}</div>
+    <div class="lbl" style="color:#f5a623;">WARNING</div>
+  </div>
+  <div class="stat" style="background:rgba(122,143,168,0.10);">
+    <div class="num" style="color:#7a8fa8;">{counts['N/A']}</div>
+    <div class="lbl" style="color:#7a8fa8;">N/A</div>
+  </div>
+  <div style="margin-left:auto; font-size:12px; color:#8a9abb; text-align:right;">
+    총 {total}개 항목<br>
+    <span style="color:#00c4a0; font-weight:700;">{'검증 통과' if counts['FAIL'] == 0 else str(counts['FAIL']) + '개 항목 실패'}</span>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <span>필터:</span>
+  <button class="fbtn active-pass" onclick="toggle(this,'PASS')">PASS</button>
+  <button class="fbtn active-fail" onclick="toggle(this,'FAIL')">FAIL</button>
+  <button class="fbtn active-warn" onclick="toggle(this,'WARNING')">WARNING</button>
+  <button class="fbtn active-na"   onclick="toggle(this,'N/A')">N/A</button>
+  <input class="search" type="text" placeholder="ID / Column 검색..." oninput="search(this.value)">
+</div>
+
+<div class="table-wrap">
+  <table id="result-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Column</th>
+        <th>Check</th>
+        <th>Criteria</th>
+        <th style="text-align:center;">Status</th>
+        <th style="text-align:center;">Fail Count</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows_html}
+    </tbody>
+  </table>
+</div>
+
+<div class="footer">
+  PRDMRT · BMS Data Quality Assurance System &nbsp;·&nbsp; {generated_at}
+</div>
+
+<script>
+  const active = {{PASS:true, FAIL:true, WARNING:true, 'N/A':true}};
+  const classMap = {{PASS:'active-pass', FAIL:'active-fail', WARNING:'active-warn', 'N/A':'active-na'}};
+  let searchTerm = '';
+
+  function toggle(btn, status) {{
+    active[status] = !active[status];
+    btn.className = 'fbtn ' + (active[status] ? classMap[status] : 'off');
+    applyFilter();
+  }}
+
+  function search(val) {{
+    searchTerm = val.toLowerCase();
+    applyFilter();
+  }}
+
+  function applyFilter() {{
+    document.querySelectorAll('#result-table tbody tr').forEach(row => {{
+      const cells = row.querySelectorAll('td');
+      if (!cells.length) return;
+      const id  = (cells[0]?.textContent || '').toLowerCase();
+      const col = (cells[1]?.textContent || '').toLowerCase();
+      const sts = (cells[4]?.textContent || '').trim();
+      const matchFilter = active[sts] !== false;
+      const matchSearch = !searchTerm || id.includes(searchTerm) || col.includes(searchTerm);
+      row.classList.toggle('hidden', !(matchFilter && matchSearch));
+    }});
+  }}
+</script>
+</body>
+</html>"""
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(html)
+
+        logger.info(f"HTML 리포트 저장 완료: {output_path}")
+        print(f"HTML 리포트 저장: {output_path}")
