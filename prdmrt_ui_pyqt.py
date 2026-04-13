@@ -790,10 +790,13 @@ class WorkerThread(QThread):
                     
                     results = shared_validator.validate_file(file_path)
                     
-                    # 리포트 저장 경로 (같은 폴더, XLSX 형식)
+                    # 리포트 저장 경로 (같은 폴더, XLSX + HTML)
                     base_name = os.path.splitext(file_name)[0]
                     report_path = os.path.join(folder_path, f"bms_validation_{base_name}.xlsx")
                     shared_validator.generate_report(report_path, file_path)
+                    html_report_path = os.path.join(folder_path, f"bms_validation_{base_name}.html")
+                    shared_validator.generate_html_report(html_report_path, file_path)
+                    self.log_signal.emit(f"  - HTML 리포트: {os.path.basename(html_report_path)}")
                     
                     # 결과 요약
                     total = len(results)
@@ -845,14 +848,18 @@ class WorkerThread(QThread):
         if len(integrated_results) > 0:
             result_df = pd.DataFrame(integrated_results)
             result_file_path = os.path.join(base_folder, f"통합_검증_결과_{start_date}_to_{end_date}.xlsx")
-            
+            html_file_path = os.path.join(base_folder, f"통합_검증_결과_{start_date}_to_{end_date}.html")
+
             # Excel로 저장 (서식 적용)
             self._save_integrated_result_excel(result_df, result_file_path)
-            
+            # HTML로도 저장
+            self._save_integrated_result_html(result_df, html_file_path, start_date, end_date)
+
             self.log_signal.emit("")
             self.log_signal.emit("=" * 70)
             self.log_signal.emit(f"[SUCCESS] 통합 결과 파일 생성: {os.path.basename(result_file_path)}")
-            self.log_signal.emit(f"[INFO] 위치: {result_file_path}")
+            self.log_signal.emit(f"[SUCCESS] 통합 HTML 리포트 생성: {os.path.basename(html_file_path)}")
+            self.log_signal.emit(f"[INFO] 위치: {base_folder}")
             self.log_signal.emit("=" * 70)
             
             # 폴더 열기
@@ -938,6 +945,138 @@ class WorkerThread(QThread):
         
         # 파일 저장
         wb.save(output_path)
+
+    def _save_integrated_result_html(self, df, output_path, start_date, end_date):
+        """
+        통합 결과를 브라우저에서 바로 열 수 있는 HTML 파일로 저장
+        :param df: 결과 DataFrame (컬럼: #, PID, PASS/FAIL, 비고)
+        :param output_path: 저장 경로
+        :param start_date: 검증 시작일
+        :param end_date: 검증 종료일
+        """
+        from datetime import datetime as _dt
+
+        total = len(df)
+        pass_count = (df['PASS/FAIL'] == 'PASS').sum()
+        fail_count = (df['PASS/FAIL'] == 'FAIL').sum()
+        pass_pct = round(pass_count / total * 100) if total else 0
+        generated_at = _dt.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # SVG 도넛 계산
+        circ = 2 * 3.14159 * 26
+        pass_dash = round(circ * pass_pct / 100, 2)
+        fail_dash = round(circ * (100 - pass_pct) / 100, 2)
+
+        rows_html = ''
+        for _, row in df.iterrows():
+            status = row['PASS/FAIL']
+            color = '#00c4a0' if status == 'PASS' else '#ff5a5a'
+            bg = 'rgba(0,196,160,0.07)' if status == 'PASS' else 'rgba(255,90,90,0.07)'
+            remark = str(row.get('비고', '') or '').replace('<', '&lt;').replace('>', '&gt;')
+            rows_html += f'''
+        <tr style="background:{bg};">
+          <td style="text-align:center;color:#8a9abb;">{row["#"]}</td>
+          <td style="text-align:center;font-weight:700;">{row["PID"]}</td>
+          <td style="text-align:center;">
+            <span style="display:inline-block;padding:3px 14px;border-radius:20px;
+              background:{color}22;color:{color};font-weight:700;font-size:13px;">{status}</span>
+          </td>
+          <td style="font-size:12px;color:#8a9abb;max-width:500px;word-break:break-all;">{remark}</td>
+        </tr>'''
+
+        html = f'''<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>DART 통합 검증 결과 {start_date}~{end_date}</title>
+<style>
+  *{{box-sizing:border-box;margin:0;padding:0;}}
+  body{{font-family:"Segoe UI","Malgun Gothic",sans-serif;background:#0d1b2a;color:#e8f0fe;padding:32px;}}
+  h1{{font-size:22px;margin-bottom:4px;}}
+  .sub{{font-size:13px;color:#8a9abb;margin-bottom:24px;}}
+  .summary{{display:flex;gap:20px;align-items:center;background:#132236;border-radius:14px;padding:20px 28px;margin-bottom:24px;}}
+  .donut{{flex-shrink:0;}}
+  .stats{{display:flex;gap:16px;flex-wrap:wrap;}}
+  .stat{{text-align:center;padding:12px 18px;background:#1a2e45;border-radius:10px;min-width:80px;}}
+  .stat .num{{font-size:26px;font-weight:800;}}
+  .stat .lbl{{font-size:11px;color:#8a9abb;margin-top:4px;}}
+  .pass-col{{color:#00c4a0;}} .fail-col{{color:#ff5a5a;}} .tot-col{{color:#7ab3f5;}}
+  .search-bar{{display:flex;gap:10px;margin-bottom:14px;}}
+  .search-bar input{{flex:1;background:#132236;border:1px solid rgba(255,255,255,0.1);
+    color:#e8f0fe;padding:8px 14px;border-radius:8px;font-size:14px;}}
+  .filter-btn{{padding:6px 16px;border-radius:20px;border:1px solid rgba(255,255,255,0.15);
+    background:none;color:#e8f0fe;cursor:pointer;font-size:13px;transition:all 0.2s;}}
+  .filter-btn.active{{background:#1a6bcc;border-color:#1a6bcc;}}
+  table{{width:100%;border-collapse:collapse;background:#132236;border-radius:12px;overflow:hidden;}}
+  th{{background:#1a2e45;padding:10px 14px;text-align:left;font-size:12px;color:#8a9abb;letter-spacing:0.5px;}}
+  td{{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:top;}}
+  tr:last-child td{{border-bottom:none;}}
+  @media print{{body{{background:#fff;color:#000;}}table{{border:1px solid #ccc;}}}}
+</style>
+</head>
+<body>
+<h1>DART 통합 검증 결과</h1>
+<div class="sub">기간: {start_date} ~ {end_date} &nbsp;|&nbsp; 생성: {generated_at} &nbsp;|&nbsp; 총 {total}건</div>
+
+<div class="summary">
+  <div class="donut">
+    <svg width="80" height="80" viewBox="0 0 60 60">
+      <circle cx="30" cy="30" r="26" fill="none" stroke="#1a2e45" stroke-width="8"/>
+      <circle cx="30" cy="30" r="26" fill="none" stroke="#ff5a5a" stroke-width="8"
+        stroke-dasharray="{fail_dash} {pass_dash}" stroke-dashoffset="0" transform="rotate(-90 30 30)"/>
+      <circle cx="30" cy="30" r="26" fill="none" stroke="#00c4a0" stroke-width="8"
+        stroke-dasharray="{pass_dash} {fail_dash}" stroke-dashoffset="{fail_dash}" transform="rotate(-90 30 30)"/>
+      <text x="30" y="34" text-anchor="middle" font-size="12" font-weight="800" fill="#e8f0fe">{pass_pct}%</text>
+    </svg>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="num tot-col">{total}</div><div class="lbl">전체</div></div>
+    <div class="stat"><div class="num pass-col">{pass_count}</div><div class="lbl">PASS</div></div>
+    <div class="stat"><div class="num fail-col">{fail_count}</div><div class="lbl">FAIL</div></div>
+  </div>
+</div>
+
+<div class="search-bar">
+  <input id="search" type="text" placeholder="PID 또는 비고 검색..." oninput="filterTable()">
+  <button class="filter-btn active" id="btn-ALL" onclick="setFilter('ALL',this)">전체</button>
+  <button class="filter-btn" id="btn-PASS" onclick="setFilter('PASS',this)">PASS</button>
+  <button class="filter-btn" id="btn-FAIL" onclick="setFilter('FAIL',this)">FAIL</button>
+  <button class="filter-btn" onclick="window.print()">인쇄 / PDF</button>
+</div>
+
+<table id="tbl">
+  <thead><tr><th>#</th><th>PID</th><th>결과</th><th>비고 (FAIL 항목)</th></tr></thead>
+  <tbody id="tbody">
+{rows_html}
+  </tbody>
+</table>
+
+<script>
+  let activeFilter = 'ALL';
+  function setFilter(f, btn) {{
+    activeFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filterTable();
+  }}
+  function filterTable() {{
+    const q = document.getElementById('search').value.toLowerCase();
+    document.querySelectorAll('#tbody tr').forEach(tr => {{
+      const txt = tr.innerText.toLowerCase();
+      const cells = tr.querySelectorAll('td');
+      const status = cells[2] ? cells[2].innerText.trim() : '';
+      const matchFilter = activeFilter === 'ALL' || status === activeFilter;
+      const matchSearch = !q || txt.includes(q);
+      tr.style.display = matchFilter && matchSearch ? '' : 'none';
+    }});
+  }}
+</script>
+</body>
+</html>'''
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(html)
 
 
 class PrdmrtAppPyQt(QMainWindow):
@@ -1618,19 +1757,21 @@ class BMSValidationDialog(QDialog):
             self.progress_label.setText("리포트 생성 중...")
             QApplication.processEvents()
             
-            # 리포트 저장
+            # 리포트 저장 (XLSX + HTML)
             validator.generate_report(output_path)
-            
+            html_output_path = os.path.splitext(output_path)[0] + '.html'
+            validator.generate_html_report(html_output_path, file_path)
+
             self.progress_bar.setValue(100)
             self.progress_label.setText("완료!")
-            
+
             # 결과 요약 표시
             total = len(results)
             pass_count = sum(1 for r in results if r['Status'] == 'PASS')
             fail_count = sum(1 for r in results if r['Status'] == 'FAIL')
             warning_count = sum(1 for r in results if r['Status'] == 'WARNING')
             na_count = sum(1 for r in results if r['Status'] == 'N/A')
-            
+
             summary = f"""
 === 검증 결과 요약 ===
 
@@ -1642,6 +1783,7 @@ class BMSValidationDialog(QDialog):
 ➖ N/A: {na_count}개
 
 리포트 저장: {output_path}
+HTML 리포트: {html_output_path}
 
 === 주요 실패 항목 ===
 """
