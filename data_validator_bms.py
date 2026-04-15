@@ -240,10 +240,7 @@ class BMSDataValidator:
         self._validate_all()
         
         logger.info(f"검증 완료: 총 {len(self.results)}개 항목")
-        
-        # 메모리 해제 (여러 파일 연속 검증 시 메모리 절약)
-        self.df = None
-        
+
         return self.results
     
     def _validate_all(self):
