@@ -2001,11 +2001,119 @@ class BMSDataValidator:
     # ==================== 리포트 생성 ====================
     
     def generate_report(self, output_path, source_file_path=None):
-        """XLSX 리포트 생성 — bms_report_generator.generate_excel_report() 위임"""
-        from bms_report_generator import generate_excel_report
-        generate_excel_report(self.results, output_path)
+        """
+        검증 결과를 XLSX 파일로 저장 (서식 적용)
+        :param output_path: 출력 파일 경로
+        :param source_file_path: 원본 데이터 파일 경로 (하이퍼링크용)
+        """
+        if not self.results:
+            logger.warning("저장할 검증 결과가 없습니다.")
+            return
+
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils.dataframe import dataframe_to_rows
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "BMS Validation"
+
+        # DataFrame 생성
+        report_df = pd.DataFrame(self.results)
+
+        # DataFrame을 시트에 쓰기
+        for r_idx, row in enumerate(dataframe_to_rows(report_df, index=False, header=True), 1):
+            for c_idx, value in enumerate(row, 1):
+                cell = ws.cell(row=r_idx, column=c_idx, value=value)
+
+        # 테두리 스타일
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+
+        # 1. 전체 테두리 적용
+        for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+            for cell in row:
+                cell.border = thin_border
+                cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+        # 2. 헤더(1행) 주황색 배경
+        header_fill = PatternFill(start_color="FFA500", end_color="FFA500", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF")
+
+        for cell in ws[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+
+        # 3. ID 컬럼 병합 (Column이 같은 행끼리)
+        merge_ranges = []
+        current_column_value = None
+        start_row = 2
+
+        for row_idx in range(2, ws.max_row + 2):
+            if row_idx <= ws.max_row:
+                column_value = ws.cell(row=row_idx, column=2).value
+            else:
+                column_value = None
+
+            if column_value != current_column_value:
+                if current_column_value is not None and row_idx - 1 >= start_row:
+                    if row_idx - 1 > start_row:
+                        merge_ranges.append((start_row, row_idx - 1))
+
+                current_column_value = column_value
+                start_row = row_idx
+
+        # ID 셀 병합 적용
+        for start, end in merge_ranges:
+            ws.merge_cells(start_row=start, start_column=1, end_row=end, end_column=1)
+            ws.cell(row=start, column=1).alignment = Alignment(horizontal='center', vertical='center')
+
+        # 4. Status 컬럼 색상 적용 (5번째 컬럼)
+        status_col_idx = 5
+
+        for row_idx in range(2, ws.max_row + 1):
+            status_cell = ws.cell(row=row_idx, column=status_col_idx)
+            status_value = status_cell.value
+
+            if status_value == 'PASS':
+                status_cell.fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+                status_cell.font = Font(color="006100")
+            elif status_value == 'FAIL':
+                status_cell.fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+                status_cell.font = Font(color="9C0006", bold=True)
+            elif status_value == 'WARNING':
+                status_cell.fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
+                status_cell.font = Font(color="9C6500")
+
+        # 열 너비 자동 조정
+        column_widths = {
+            1: 10,   # ID
+            2: 25,   # Column
+            3: 30,   # Check
+            4: 50,   # Criteria
+            5: 12,   # Status
+            6: 12,   # Fail_Count
+            7: 40    # Details
+        }
+
+        for col_idx, width in column_widths.items():
+            ws.column_dimensions[ws.cell(row=1, column=col_idx).column_letter].width = width
+
+        # 행 높이 설정
+        ws.row_dimensions[1].height = 25
+        for row_idx in range(2, ws.max_row + 1):
+            ws.row_dimensions[row_idx].height = 20
+
+        # 파일 저장
+        wb.save(output_path)
+        logger.info(f"검증 리포트 저장 완료: {output_path}")
+        print(f"검증 리포트 저장: {output_path}")
 
     def generate_html_report(self, output_path, source_file_path=None):
-        """HTML 리포트 생성 — bms_report_generator.generate_html_report() 위임"""
+        """HTML 리포트 생성 — bms_report_generator.py 위임 (신규 추가)"""
         from bms_report_generator import generate_html_report as _gen
         _gen(self.results, self.df, self.vehicle_model, self.fleet, output_path, source_file_path)
