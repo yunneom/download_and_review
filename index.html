@@ -338,6 +338,37 @@
 
   /* ─── SECTION SLIDE ─── */
   .section-slide { justify-content: center; align-items: flex-start; background: linear-gradient(135deg, rgba(26,107,204,0.08), transparent); }
+
+  /* ── VALIDATION TAB (Slide 5) ── */
+  .val-tab {
+    padding: 5px 16px; border-radius: 20px; font-size: 12px; cursor: pointer;
+    background: none; border: 1px solid rgba(255,255,255,0.15); color: var(--muted);
+    transition: all 0.2s;
+  }
+  .val-tab.active  { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .val-tab:hover:not(.active) { border-color: rgba(255,255,255,0.3); color: var(--text); }
+
+  /* ── CASCADE (컬럼별 분류) ── */
+  .cascade-wrap { display: flex; flex-direction: column; gap: 7px; overflow-y: auto; flex: 1; }
+  details.cg { background: var(--card); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; overflow: hidden; }
+  details.cg[open] { border-color: rgba(0,196,160,0.25); }
+  details.cg summary {
+    list-style: none; padding: 10px 14px; cursor: pointer; display: flex;
+    align-items: center; gap: 10px; user-select: none; font-size: 13px;
+  }
+  details.cg summary::-webkit-details-marker { display: none; }
+  details.cg summary .cg-arrow { font-size: 10px; color: var(--muted); transition: transform 0.2s; }
+  details.cg[open] summary .cg-arrow { transform: rotate(90deg); }
+  details.cg summary .cg-icon { font-size: 16px; }
+  details.cg summary .cg-title { font-weight: 700; flex: 1; }
+  details.cg summary .cg-cols { font-size: 11px; color: var(--muted); }
+  details.cg summary .cg-cnt { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,0.07); color: var(--muted); }
+  .cg-items { padding: 0 14px 12px 40px; display: flex; flex-direction: column; gap: 4px; }
+  .cg-item { font-size: 12px; color: var(--muted); padding: 4px 8px; border-radius: 6px; display: flex; gap: 8px; }
+  .cg-item:hover { background: rgba(255,255,255,0.04); }
+  .cg-item .ci-col { color: var(--text); min-width: 180px; font-family: monospace; font-size: 11px; }
+  .cg-item .ci-desc { flex: 1; }
+  .cg-item .ci-id { font-size: 10px; color: var(--accent); opacity: 0.7; min-width: 46px; text-align: right; }
 </style>
 </head>
 <body>
@@ -684,9 +715,17 @@ BCP/LGES/{pid}/...
       <h2>35개 BMS 검증 항목 (검증 규칙)</h2>
     </div>
 
-    <div class="grid-2" style="flex:1; gap:16px;">
+    <!-- tab bar -->
+    <div style="display:flex; gap:8px; margin-bottom:10px; align-items:center;">
+      <button class="val-tab active" id="vtab-group"  onclick="switchValTab('group',this)">그룹별 A–E</button>
+      <button class="val-tab"        id="vtab-column" onclick="switchValTab('column',this)">컬럼별 분류</button>
+      <span style="font-size:11px; color:var(--muted); margin-left:6px;">※ 클릭으로 항목 펼치기/닫기</span>
+    </div>
+
+    <!-- ── PANEL 1: GROUP VIEW (A–E) ── -->
+    <div id="val-group" style="flex:1; display:flex; gap:16px; min-height:0;">
       <!-- left -->
-      <div class="scroll-content" style="display:flex; flex-direction:column; gap:8px;">
+      <div class="scroll-content" style="flex:1; display:flex; flex-direction:column; gap:8px;">
         <div class="card group-basic" style="padding:12px 14px;">
           <div style="font-size:10px; letter-spacing:1px; color:#7ab3f5; margin-bottom:6px;">GROUP A · 기본 상태 (항목 1–10)</div>
           <div style="font-size:12px; line-height:2; color:var(--muted);">
@@ -700,29 +739,26 @@ BCP/LGES/{pid}/...
             <span style="color:var(--text);">mile_km</span> — 주행거리 선형 증가
           </div>
         </div>
-
         <div class="card group-cell" style="padding:12px 14px;">
           <div style="font-size:10px; letter-spacing:1px; color:var(--accent); margin-bottom:6px;">GROUP B · 셀 전압 (항목 11–16)</div>
           <div style="font-size:12px; line-height:2; color:var(--muted);">
             <span style="color:var(--text);">cell_min/max_volt</span> — 범위 2.6~4.5V<br>
             <span style="color:var(--text);">cell_volt_dev</span> — max − min 편차 계산<br>
             <span style="color:var(--text);">cell_min/max_volt_no</span> — 번호 ≤ cell_count(N)<br>
-            <span style="color:var(--text);">cell_voltage_1~N</span> — 수집 윈도우 마스크 + 주기
+            <span style="color:var(--text);">cell_voltage_1~N</span> — 수집 구간 마스크 + 주기
           </div>
         </div>
-
         <div class="card group-temp" style="padding:12px 14px;">
           <div style="font-size:10px; letter-spacing:1px; color:var(--warn); margin-bottom:6px;">GROUP C · 모듈 온도 (항목 17–20)</div>
           <div style="font-size:12px; line-height:2; color:var(--muted);">
             <span style="color:var(--text);">module_min/max_temp</span> — 범위 −40~+85°C<br>
-            <span style="color:var(--text);">module_avg_temp</span> — 수집 윈도우 마스크<br>
+            <span style="color:var(--text);">module_avg_temp</span> — 수집 구간 마스크<br>
             <span style="color:var(--text);">battery_module_1~N</span> — 마스크 + ≤ module_count
           </div>
         </div>
       </div>
-
       <!-- right -->
-      <div class="scroll-content" style="display:flex; flex-direction:column; gap:8px;">
+      <div class="scroll-content" style="flex:1; display:flex; flex-direction:column; gap:8px;">
         <div class="card group-power" style="padding:12px 14px;">
           <div style="font-size:10px; letter-spacing:1px; color:#c07aee; margin-bottom:6px;">GROUP D · 에너지·전력 (항목 21–27)</div>
           <div style="font-size:12px; line-height:2; color:var(--muted);">
@@ -733,7 +769,6 @@ BCP/LGES/{pid}/...
             <span style="color:var(--text);">ir</span> — 내부저항 ≥ 0
           </div>
         </div>
-
         <div class="card group-adv" style="padding:12px 14px;">
           <div style="font-size:10px; letter-spacing:1px; color:#ff7a7a; margin-bottom:6px;">GROUP E · 복합 로직 (항목 28–35)</div>
           <div style="font-size:12px; line-height:2; color:var(--muted);">
@@ -746,32 +781,117 @@ BCP/LGES/{pid}/...
             <span style="color:var(--text);">충전 조건</span> — speed=0, relay=1, |curr|&gt;1
           </div>
         </div>
-
         <!-- distribution bar -->
         <div class="card" style="padding:14px 16px;">
-          <div style="font-size:12px; color:var(--muted); margin-bottom:12px;">그룹별 검증 항목 분포 (총 35개)</div>
-          <div style="display:flex; flex-direction:column; gap:7px; font-size:12px;">
-            <div>
-              <div style="display:flex; justify-content:space-between;"><span>기본 상태 (A)</span><span style="color:#7ab3f5;">10</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:28%; background:linear-gradient(90deg,#1a6bcc,#5aafff);"></div></div>
-            </div>
-            <div>
-              <div style="display:flex; justify-content:space-between;"><span>셀 전압 (B)</span><span style="color:var(--accent);">6</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:17%;"></div></div>
-            </div>
-            <div>
-              <div style="display:flex; justify-content:space-between;"><span>모듈 온도 (C)</span><span style="color:var(--warn);">4</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:11%; background:linear-gradient(90deg,#d4920a,#f5c842);"></div></div>
-            </div>
-            <div>
-              <div style="display:flex; justify-content:space-between;"><span>에너지·전력 (D)</span><span style="color:#c07aee;">7</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:20%; background:linear-gradient(90deg,#7a3a99,#c07aee);"></div></div>
-            </div>
-            <div>
-              <div style="display:flex; justify-content:space-between;"><span>복합 로직 (E)</span><span style="color:#ff7a7a;">8</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:22%; background:linear-gradient(90deg,#cc3030,#ff7a7a);"></div></div>
-            </div>
+          <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">그룹별 검증 항목 분포 (총 35개)</div>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
+            <div><div style="display:flex; justify-content:space-between;"><span>기본 상태 (A)</span><span style="color:#7ab3f5;">10</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:28%; background:linear-gradient(90deg,#1a6bcc,#5aafff);"></div></div></div>
+            <div><div style="display:flex; justify-content:space-between;"><span>셀 전압 (B)</span><span style="color:var(--accent);">6</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:17%;"></div></div></div>
+            <div><div style="display:flex; justify-content:space-between;"><span>모듈 온도 (C)</span><span style="color:var(--warn);">4</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:11%; background:linear-gradient(90deg,#d4920a,#f5c842);"></div></div></div>
+            <div><div style="display:flex; justify-content:space-between;"><span>에너지·전력 (D)</span><span style="color:#c07aee;">7</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:20%; background:linear-gradient(90deg,#7a3a99,#c07aee);"></div></div></div>
+            <div><div style="display:flex; justify-content:space-between;"><span>복합 로직 (E)</span><span style="color:#ff7a7a;">8</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:22%; background:linear-gradient(90deg,#cc3030,#ff7a7a);"></div></div></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PANEL 2: CASCADE VIEW (컬럼별 분류) ── -->
+    <div id="val-column" style="display:none; flex:1; min-height:0;">
+      <div class="cascade-wrap">
+
+        <!-- a. SOC -->
+        <details class="cg">
+          <summary>
+            <span class="cg-arrow">▶</span>
+            <span class="cg-icon">🔋</span>
+            <span class="cg-title" style="color:#7ab3f5;">SOC</span>
+            <span class="cg-cols">soc_rate / soc_display_rate</span>
+            <span class="cg-cnt">항목 7, 8</span>
+          </summary>
+          <div class="cg-items">
+            <div class="cg-item"><span class="ci-col">soc_rate</span><span class="ci-desc">배터리 잔량 0~100% 범위, NULL 검사</span><span class="ci-id">#8</span></div>
+            <div class="cg-item"><span class="ci-col">soc_display_rate</span><span class="ci-desc">표시용 SOC 0~100% 범위 검사</span><span class="ci-id">#7</span></div>
+          </div>
+        </details>
+
+        <!-- b. Temperature -->
+        <details class="cg">
+          <summary>
+            <span class="cg-arrow">▶</span>
+            <span class="cg-icon">🌡️</span>
+            <span class="cg-title" style="color:var(--warn);">Temperature</span>
+            <span class="cg-cols">module_temp / battery_module</span>
+            <span class="cg-cnt">항목 17–20</span>
+          </summary>
+          <div class="cg-items">
+            <div class="cg-item"><span class="ci-col">module_min_temp</span><span class="ci-desc">모듈 최저 온도 범위 −40~+85°C</span><span class="ci-id">#17</span></div>
+            <div class="cg-item"><span class="ci-col">module_max_temp</span><span class="ci-desc">모듈 최고 온도 범위 −40~+85°C</span><span class="ci-id">#18</span></div>
+            <div class="cg-item"><span class="ci-col">module_avg_temp</span><span class="ci-desc">평균 온도 — 수집 구간 마스크 적용</span><span class="ci-id">#19</span></div>
+            <div class="cg-item"><span class="ci-col">battery_module_1~N</span><span class="ci-desc">각 모듈 온도 ≤ module_count, 마스크 적용</span><span class="ci-id">#20</span></div>
+          </div>
+        </details>
+
+        <!-- c. Mile / Speed -->
+        <details class="cg">
+          <summary>
+            <span class="cg-arrow">▶</span>
+            <span class="cg-icon">🚗</span>
+            <span class="cg-title" style="color:#c07aee;">거리·속도</span>
+            <span class="cg-cols">mile_km / em_speed_kmh</span>
+            <span class="cg-cnt">항목 4, 9</span>
+          </summary>
+          <div class="cg-items">
+            <div class="cg-item"><span class="ci-col">em_speed_kmh</span><span class="ci-desc">속도 범위 0~250 km/h (VWGKALRT: 0~255)</span><span class="ci-id">#4</span></div>
+            <div class="cg-item"><span class="ci-col">mile_km</span><span class="ci-desc">주행거리 단조 증가 검사 (감소 시 FAIL)</span><span class="ci-id">#9</span></div>
+          </div>
+        </details>
+
+        <!-- d. Pack curr/volt -->
+        <details class="cg">
+          <summary>
+            <span class="cg-arrow">▶</span>
+            <span class="cg-icon">⚡</span>
+            <span class="cg-title" style="color:#f5a623;">Pack 전류·전압</span>
+            <span class="cg-cols">pack_curr / pack_volt / acc_* / pack_pwr</span>
+            <span class="cg-cnt">항목 5, 6, 22–26</span>
+          </summary>
+          <div class="cg-items">
+            <div class="cg-item"><span class="ci-col">pack_curr</span><span class="ci-desc">팩 전류 범위 검사 (충전 감지 기준 포함)</span><span class="ci-id">#5</span></div>
+            <div class="cg-item"><span class="ci-col">pack_volt</span><span class="ci-desc">팩 전압 범위 검사</span><span class="ci-id">#6</span></div>
+            <div class="cg-item"><span class="ci-col">acc_chg_ah / acc_dchg_ah</span><span class="ci-desc">누적 충방전 전류량 ≥0 (VWGKALRT: dchg 음수 허용)</span><span class="ci-id">#22,23</span></div>
+            <div class="cg-item"><span class="ci-col">acc_chg_wh / acc_dchg_wh</span><span class="ci-desc">누적 충방전 전력량 ≥0</span><span class="ci-id">#24,25</span></div>
+            <div class="cg-item"><span class="ci-col">pack_pwr</span><span class="ci-desc">pack_volt × pack_curr 교차검증</span><span class="ci-id">#26</span></div>
+          </div>
+        </details>
+
+        <!-- e. Cell voltage -->
+        <details class="cg">
+          <summary>
+            <span class="cg-arrow">▶</span>
+            <span class="cg-icon">🔬</span>
+            <span class="cg-title" style="color:var(--accent);">셀 전압</span>
+            <span class="cg-cols">cell_min/max_volt / cell_voltage_1~N</span>
+            <span class="cg-cnt">항목 11–16</span>
+          </summary>
+          <div class="cg-items">
+            <div class="cg-item"><span class="ci-col">cell_min_volt</span><span class="ci-desc">최소 셀 전압 2.6~4.5V</span><span class="ci-id">#11</span></div>
+            <div class="cg-item"><span class="ci-col">cell_max_volt</span><span class="ci-desc">최대 셀 전압 2.6~4.5V</span><span class="ci-id">#12</span></div>
+            <div class="cg-item"><span class="ci-col">cell_volt_dev</span><span class="ci-desc">max − min 편차 계산 검사</span><span class="ci-id">#13</span></div>
+            <div class="cg-item"><span class="ci-col">cell_min/max_volt_no</span><span class="ci-desc">셀 번호 ≤ cell_count(N)</span><span class="ci-id">#14,15</span></div>
+            <div class="cg-item"><span class="ci-col">cell_voltage_1~N</span><span class="ci-desc">수집 구간 마스크 + 주기 검증 (N개 개별)</span><span class="ci-id">#16</span></div>
+          </div>
+        </details>
+
+        <!-- note -->
+        <div style="padding:10px 14px; background:rgba(255,255,255,0.03); border-radius:8px; font-size:11px; color:var(--muted);">
+          ※ 위 5개 그룹 외 항목: <span style="color:var(--text);">unix_time·ignit_status·chg_conr</span> (타임스탬프/상태, 항목 1–3),
+          <span style="color:var(--text);">main_relay·oper_second·ir·soh_rate</span> (릴레이/시간/내부저항/건강도, 항목 6,21,27,32),
+          복합 로직 검증 (항목 28–31, 33–35)
         </div>
       </div>
     </div>
@@ -1324,6 +1444,13 @@ validator.generate_html_report(
 
   function nextSlide() { goTo(current + 1); }
   function prevSlide() { goTo(current - 1); }
+
+  function switchValTab(tab, btn) {
+    document.getElementById('val-group').style.display  = tab === 'group'  ? 'flex' : 'none';
+    document.getElementById('val-column').style.display = tab === 'column' ? 'flex' : 'none';
+    document.querySelectorAll('.val-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
 
   document.addEventListener('keydown', e => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') nextSlide();

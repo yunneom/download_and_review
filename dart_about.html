@@ -398,6 +398,135 @@ validator.generate_html_report("result.html")    <span class="cm"># 브라우저
     </p>
   </section>
 
+  <!-- ── 6. 발표 설명 (Presenter Notes) ── -->
+  <section id="notes">
+    <div class="section-label">Presenter Notes</div>
+    <h2>발표 설명 — 핵심 메시지</h2>
+
+    <p style="margin-bottom:20px;">
+      아래는 발표 시 각 포인트별로 전달할 핵심 내용입니다.
+      슬라이드 순서와 맞춰 활용하세요.
+    </p>
+
+    <!-- Point 1 -->
+    <div class="card card-accent" style="margin-bottom:14px;">
+      <div style="display:flex; gap:14px; align-items:flex-start;">
+        <div style="font-size:22px; font-weight:900; color:var(--accent); min-width:32px;">1</div>
+        <div>
+          <h3 style="margin-bottom:8px;">도구가 없었다</h3>
+          <p>
+            전기차 관련 서비스 운영팀에서 BMS(Battery Management System) 데이터를 받아보면
+            <strong>품질을 검증하는 도구 자체가 없었습니다.</strong><br>
+            데이터를 S3에서 내려받아도 이상 여부를 수작업으로 확인해야 했고,
+            기준도 문서마다 달랐습니다.<br><br>
+            DART는 이 문제를 해결하기 위해 만들었습니다.
+            AWS S3에서 데이터를 받아서 <strong>실행만 하면 검증 결과가 나오는 구조</strong>를
+            목표로 잡았습니다.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Point 2 -->
+    <div class="card card-blue" style="margin-bottom:14px;">
+      <div style="display:flex; gap:14px; align-items:flex-start;">
+        <div style="font-size:22px; font-weight:900; color:#7ab3f5; min-width:32px;">2</div>
+        <div>
+          <h3 style="margin-bottom:8px;">개발하면서 규칙이 늘었다</h3>
+          <p>
+            처음에는 기본적인 범위 검사 몇 개로 시작했습니다.
+            실제 데이터를 보면서 <strong>35개 항목, 71개 조건</strong>까지 늘어났습니다.<br>
+            검증 규칙이 코드로 명문화되자, 팀 내에서 "이 항목도 검사해야 하지 않나?"
+            하는 논의가 생기고 자연스럽게 범위가 확장됐습니다.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Point 3 -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:flex; gap:14px; align-items:flex-start;">
+        <div style="font-size:22px; font-weight:900; color:var(--muted); min-width:32px;">3</div>
+        <div>
+          <h3 style="margin-bottom:8px;">차량마다 데이터가 다르다</h3>
+          <p>
+            도구를 쓰면서 알게 된 것 — <strong>같은 BMS 컬럼이라도 Fleet마다 값의 의미와 허용 범위가 다릅니다.</strong><br>
+            VWGKALRT는 방전 전류량이 음수로 기록됩니다. RAY는 누적 전력량 컬럼이 없습니다.
+            Bolt 2017은 주행거리 컬럼이 없습니다.<br><br>
+            이 예외들을 코드로 처리하지 않으면 정상 데이터를 FAIL로 판정하는 오탐이 발생합니다.
+            <strong>vehicle_master.json으로 차량을 자동 식별해 Fleet별 규칙을 자동 선택</strong>하는
+            구조가 이래서 필요했습니다.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Point 4 -->
+    <div class="card" style="margin-bottom:14px; border-color:rgba(245,166,35,0.3);">
+      <div style="display:flex; gap:14px; align-items:flex-start;">
+        <div style="font-size:22px; font-weight:900; color:var(--warn); min-width:32px;">4</div>
+        <div>
+          <h3 style="margin-bottom:8px;">바이브코딩(Vibe Coding) — 2025년의 새로운 개발 방식</h3>
+          <p>
+            DART는 <strong>AI와 대화하며 코드를 만들어나가는 바이브코딩 방식</strong>으로 개발됐습니다.<br>
+            기획서도, 스프린트 일정도 없이 — "이 기능이 필요해"를 AI에게 말하면
+            AI가 코드를 작성하고 개발자는 방향을 잡는 역할을 합니다.
+          </p>
+          <div class="quote" style="margin-top:12px; margin-bottom:0;">
+            "AI(클로드)와 Align — 대화 → 코드 확장 → 검토 → 반복.<br>
+            이것이 바이브코딩입니다. 기존 개발보다 훨씬 빠르게 아이디어가 작동하는 코드가 됩니다.<br>
+            2025년 현재 AI 도구의 가장 실용적인 활용 방식 중 하나입니다."
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Point 5: Code example -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:flex; gap:14px; align-items:flex-start;">
+        <div style="font-size:22px; font-weight:900; color:var(--accent); min-width:32px;">5</div>
+        <div style="flex:1;">
+          <h3 style="margin-bottom:8px;">실제 예시 — AI가 작성한 핵심 로직</h3>
+          <p style="margin-bottom:10px;">
+            가장 까다로운 로직 중 하나인 <strong>수집 구간 자동 선별 함수</strong>도
+            바이브코딩으로 만들었습니다.<br>
+            "시동 OFF 후 충전·슬립 대기 구간 데이터만 골라야 해"라는 한 마디에서 시작됐습니다.
+          </p>
+          <div class="code-block">
+<span class="cm"># AI가 작성한 핵심 함수 (요약)</span>
+def _get_collection_window_mask(self):
+    <span class="cm">"""IGN OFF 후 충전·슬립 대기 구간 행만 True로 마스킹"""</span>
+    ign   = self.df['ignit_status']
+    relay = self.df['main_relay_status']
+
+    <span class="cm"># IGN 0→0 유지, relay=1 (충전/슬립 대기) 구간 선택</span>
+    mask  = (ign == 0) &amp; (relay == 1)
+    return mask  <span class="cm"># 항목 16, 19, 20에 적용</span>
+          </div>
+          <p style="margin-top:8px; font-size:13px;">
+            이 함수 하나로 <strong>주행 중 오탐 방지</strong>와
+            <strong>수집 구간 정밀 검증</strong>이 동시에 해결됩니다.
+            AI가 코드를 쓰고 개발자가 도메인 검증을 했습니다.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div style="background:rgba(0,196,160,0.05); border:1px solid rgba(0,196,160,0.2); border-radius:12px; padding:18px 22px;">
+      <div style="font-size:11px; color:var(--accent); letter-spacing:1px; margin-bottom:8px;">ONE-LINER SUMMARY</div>
+      <p style="font-size:15px; color:var(--text); font-weight:600; margin-bottom:0;">
+        "데이터 품질 도구가 없어서 만들었고, AI와 함께 만들었습니다.<br>
+        규칙은 코드가 되었고, 결과는 누구나 볼 수 있게 됐습니다."
+      </p>
+    </div>
+
+    <p style="margin-top:24px; text-align:right; font-size:12px;">
+      <a class="back-link" href="index.html">← 발표 슬라이드로 돌아가기</a>
+    </p>
+  </section>
+
 </div><!-- /container -->
 
 </body>
