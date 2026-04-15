@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  dart-web:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - PORT=8080
+      - FLASK_DEBUG=false
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
