@@ -352,8 +352,8 @@
       <div class="title-eyebrow">DART Data Assurance &amp; Reliability Tracker</div>
       <div class="title-main">BMS 데이터<br>품질 검증 자동화</div>
       <div class="title-subtitle">
-        전기차 배터리(BMS) 텔레메트리 데이터를 AWS S3에서 자동으로 수신하고,<br>
-        <strong style="color:var(--text);">35개 항목 · 71개 조건</strong>으로 데이터 품질을 검사한 뒤 결과 리포트를 생성합니다.
+        전기차 배터리 데이터(BMS)를 AWS S3에서 자동으로 취득한 뒤,<br>
+        35개 항목 · 71개 조건으로 데이터 품질을 검증하고 결과 리포트를 생성합니다.
       </div>
       <div class="title-meta">
         <span><strong>대상 서비스</strong><br>AX Fleet · prod monitoring</span>
@@ -383,15 +383,14 @@
         <div class="card card-accent" style="flex:1;">
           <div style="font-size:11px; letter-spacing:1px; color:var(--accent); margin-bottom:12px;">서비스 배경</div>
           <ul class="check-list">
-            <li>AX(Accelerated eXperience) Fleet 서비스 자동화 구축 필요</li>
-            <li>data-pipeline 내 BMS 데이터 품질 관리 체계 부재</li>
-            <li>수신 규칙 기반 데이터 정합성 검증·검사 효율화 요구</li>
-            <li>비엔지니어도 검증 결과를 빠르게 확인할 수 있는 도구 필요</li>
+            <li>Fleet 서비스 자동화 구축 필요</li>
+            <li>규칙 기반 데이터 정합성 검증·검사 효율화 요구</li>
+            <li>누구나 검증 결과를 빠르고 쉽게 확인할 수 있는 도구 필요</li>
           </ul>
         </div>
         <div class="stat-box">
           <div class="stat-num" style="font-size:28px; color:#7ab3f5;">자동화</div>
-          <div class="stat-label">다운로드→검증→리포트<br>전 과정 논클릭 처리로</div>
+          <div class="stat-label">다운로드→검증→리포트<br>전과정 원클릭으로 처리</div>
         </div>
       </div>
 
@@ -402,23 +401,19 @@
           <div style="display:flex; flex-direction:column; gap:7px; font-size:13px;">
             <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(90,175,255,0.07); border-radius:7px;">
               <span style="color:#5aafff; font-weight:600;">VWGKALRT</span>
-              <span style="color:var(--muted); font-size:11px;">Audi Q4 · VW ID.5</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(245,166,35,0.07); border-radius:7px;">
-              <span style="color:#f5a623; font-weight:600;">LGES</span>
-              <span style="color:var(--muted); font-size:11px;">Kia Ray · Chevy Bolt</span>
+              <span style="color:var(--muted); font-size:11px;">VW Audi Q4 · VW ID.4 · ID.5</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(0,196,160,0.07); border-radius:7px;">
               <span style="color:var(--accent); font-weight:600;">HKMC</span>
-              <span style="color:var(--muted); font-size:11px;">Hyundai · Kia</span>
+              <span style="color:var(--muted); font-size:11px;">IONIQ9 · EV9 등</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(176,107,204,0.07); border-radius:7px;">
               <span style="color:#c07aee; font-weight:600;">GM</span>
-              <span style="color:var(--muted); font-size:11px;">Chevrolet 등</span>
+              <span style="color:var(--muted); font-size:11px;">Bolt 등</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(255,90,90,0.07); border-radius:7px;">
               <span style="color:#ff7a7a; font-weight:600;">Tesla</span>
-              <span style="color:var(--muted); font-size:11px;">Model Y 등</span>
+              <span style="color:var(--muted); font-size:11px;">Model 3 · Model Y 등</span>
             </div>
           </div>
           <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06); font-size:12px; color:var(--muted);">
@@ -430,7 +425,7 @@
       <!-- 주요 지표 -->
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div class="card">
-          <div style="font-size:11px; letter-spacing:1px; color:var(--accent); margin-bottom:12px;">주요 지표 (KPI)</div>
+          <div style="font-size:11px; letter-spacing:1px; color:var(--accent); margin-bottom:12px;">검증 커버리지</div>
           <div style="display:flex; flex-direction:column; gap:10px;">
             <div style="padding:10px 12px; background:rgba(0,196,160,0.06); border-radius:8px; text-align:center;">
               <div style="font-size:30px; font-weight:800; color:var(--accent);">35</div>
@@ -527,31 +522,25 @@ BCP/LGES/{pid}/...
             <tbody>
               <tr>
                 <td><span style="color:#5aafff; font-weight:600;">VWGKALRT</span></td>
-                <td>Audi Q4 e-tron, VW ID.5</td>
+                <td>VW Audi Q4, VW ID.4, ID.5</td>
                 <td>84 / 96</td>
                 <td>12 / 24</td>
               </tr>
               <tr>
-                <td><span style="color:#f5a623; font-weight:600;">LGES</span></td>
-                <td>Kia Ray, Chevy Bolt</td>
-                <td>60 / 96</td>
-                <td>5 / 10</td>
-              </tr>
-              <tr>
                 <td><span style="color:var(--accent); font-weight:600;">HKMC</span></td>
-                <td>Hyundai Ioniq 5/6</td>
+                <td>IONIQ9, EV9 등</td>
                 <td>192</td>
                 <td>—</td>
               </tr>
               <tr>
                 <td><span style="color:#c07aee; font-weight:600;">GM</span></td>
-                <td>Chevrolet 계열</td>
+                <td>Bolt 등</td>
                 <td>—</td>
                 <td>—</td>
               </tr>
               <tr>
                 <td><span style="color:#ff7a7a; font-weight:600;">Tesla</span></td>
-                <td>Model Y</td>
+                <td>Model 3, Model Y 등</td>
                 <td>—</td>
                 <td>—</td>
               </tr>
@@ -603,27 +592,20 @@ BCP/LGES/{pid}/...
       <div class="pipeline-arrow">→</div>
       <div class="pipeline-step">
         <div class="step-num">3</div>
-        <span class="step-icon">🔄</span>
-        <strong>파일 변환</strong><br>
-        <span style="color:var(--muted); font-size:11px;">Parquet → DataFrame</span>
-      </div>
-      <div class="pipeline-arrow">→</div>
-      <div class="pipeline-step">
-        <div class="step-num">4</div>
         <span class="step-icon">🚗</span>
         <strong>차량 정보 추출</strong><br>
         <span style="color:var(--muted); font-size:11px;">3단계 모델 매칭</span>
       </div>
       <div class="pipeline-arrow">→</div>
       <div class="pipeline-step">
-        <div class="step-num">5</div>
+        <div class="step-num">4</div>
         <span class="step-icon">✅</span>
         <strong>BMS 검증</strong><br>
         <span style="color:var(--muted); font-size:11px;">35 items · 71 checks</span>
       </div>
       <div class="pipeline-arrow">→</div>
       <div class="pipeline-step">
-        <div class="step-num">6</div>
+        <div class="step-num">5</div>
         <span class="step-icon">📊</span>
         <strong>리포트 생성</strong><br>
         <span style="color:var(--muted); font-size:11px;">XLSX · HTML</span>
@@ -634,13 +616,13 @@ BCP/LGES/{pid}/...
     <div class="grid-2" style="flex:1; gap:14px;">
       <div style="display:flex; flex-direction:column; gap:10px;">
         <div class="card card-primary">
-          <h3 style="margin-bottom:8px; font-size:14px;">STEP 5 · 수집 윈도우 상태 머신</h3>
+          <h3 style="margin-bottom:8px; font-size:14px;">STEP 4 · 데이터 구간 자동 선별</h3>
           <div style="font-size:12px; color:var(--muted); line-height:1.9;">
-            <span style="color:var(--accent);">활성</span> — IGN 1→0 전환 / 충전 중 / 슬립 대기 구간<br>
-            <span style="color:var(--na);">제외</span> — 주행 중(IGN=1) / 재부팅 구간
+            시동(IGN) OFF 후 <span style="color:var(--accent);">충전·슬립 대기</span> 중 수집된 데이터만 선별해 검증<br>
+            <span style="color:var(--na);">주행 중 데이터는 자동 제외</span> — 오탐 방지
           </div>
           <div style="font-size:11px; color:var(--muted); margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06);">
-            셀 전압(16번) · 온도 평균(19번) · 모듈 온도(20번) 검증에 적용
+            적용 항목: 셀전압(16) · 온도평균(19) · 모듈온도(20)
           </div>
         </div>
 

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DART — 개발 배경 & 바이브코딩 스토리</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --primary: #1a6bcc;
+    --accent:  #00c4a0;
+    --bg:      #0d1b2a;
+    --bg2:     #132236;
+    --card:    #1a2e45;
+    --text:    #e8f0fe;
+    --muted:   #8a9abb;
+    --pass:    #00c4a0;
+    --fail:    #ff5a5a;
+    --warn:    #f5a623;
+  }
+
+  body {
+    font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* ── HEADER ── */
+  .site-header {
+    background: linear-gradient(135deg, #0d1b2a 0%, #132236 60%, rgba(0,196,160,0.06) 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 48px 0 36px;
+    text-align: center;
+  }
+  .eyebrow {
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px;
+  }
+  .site-header h1 {
+    font-size: 38px; font-weight: 900; line-height: 1.15;
+    background: linear-gradient(135deg, #ffffff, #7ab3f5, var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 12px;
+  }
+  .site-header .lead {
+    font-size: 16px; color: var(--muted); max-width: 620px; margin: 0 auto;
+  }
+  .header-tags {
+    display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap;
+  }
+  .tag {
+    font-size: 12px; padding: 4px 14px; border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.12); color: var(--muted);
+  }
+  .tag.accent { border-color: var(--accent); color: var(--accent); }
+  .tag.blue   { border-color: #7ab3f5;       color: #7ab3f5; }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 860px; margin: 0 auto; padding: 0 28px; }
+
+  section { padding: 52px 0 0; }
+  section:last-child { padding-bottom: 72px; }
+
+  .section-label {
+    font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 10px;
+  }
+  h2 {
+    font-size: 24px; font-weight: 800; margin-bottom: 20px;
+    border-left: 3px solid var(--accent); padding-left: 14px;
+  }
+  p { color: var(--muted); margin-bottom: 14px; font-size: 14.5px; }
+  p strong { color: var(--text); }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--bg2); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px; padding: 22px 24px; margin-bottom: 16px;
+  }
+  .card h3 { font-size: 15px; margin-bottom: 10px; color: var(--text); }
+  .card p  { font-size: 13.5px; margin-bottom: 0; }
+
+  .card-accent { border-color: rgba(0,196,160,0.25); }
+  .card-blue   { border-color: rgba(26,107,204,0.3); }
+  .card-warn   { border-color: rgba(245,166,35,0.25); }
+
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  @media (max-width: 640px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .site-header h1 { font-size: 26px; }
+  }
+
+  /* ── TIMELINE ── */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before {
+    content: ''; position: absolute; left: 7px; top: 6px; bottom: 6px;
+    width: 2px; background: rgba(0,196,160,0.25);
+  }
+  .tl-item { position: relative; margin-bottom: 28px; }
+  .tl-item::before {
+    content: ''; position: absolute; left: -24px; top: 6px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--bg2);
+  }
+  .tl-label { font-size: 11px; color: var(--accent); letter-spacing: 1px; margin-bottom: 4px; }
+  .tl-item h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .tl-item p  { font-size: 13px; margin-bottom: 0; }
+
+  /* ── QUOTE ── */
+  .quote {
+    border-left: 3px solid var(--warn); background: rgba(245,166,35,0.05);
+    border-radius: 0 10px 10px 0; padding: 16px 20px; margin: 24px 0;
+    font-size: 14px; color: var(--text); font-style: italic; line-height: 1.7;
+  }
+
+  /* ── STAT ROW ── */
+  .stat-row {
+    display: flex; gap: 20px; flex-wrap: wrap;
+    background: var(--bg2); border-radius: 12px; padding: 20px 24px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .stat-item { text-align: center; flex: 1; min-width: 80px; }
+  .stat-item .num { font-size: 28px; font-weight: 800; color: var(--accent); }
+  .stat-item .lbl { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: #0a1520; border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px; padding: 14px 16px; font-family: 'Consolas', monospace;
+    font-size: 12px; color: #c9d7f0; overflow-x: auto; margin: 12px 0;
+  }
+  .code-block .cm { color: #5a7a6a; }
+
+  /* ── BACK LINK ── */
+  .back-link {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--muted); text-decoration: none;
+    padding: 8px 0; border-bottom: 1px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .back-link:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ── DIVIDER ── */
+  .divider { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 20px 0; }
+
+  /* ── PRINT ── */
+  @media print {
+    body { background: #fff; color: #000; }
+    .card { border: 1px solid #ccc; }
+    .site-header { background: none; border-bottom: 2px solid #ccc; }
+    h2 { border-color: #007755; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="site-header">
+  <div class="eyebrow">DART · Data Assurance &amp; Reliability Tracker</div>
+  <h1>왜 만들었고, 어떻게 만들었나</h1>
+  <p class="lead">
+    전기차 BMS 데이터 품질 검증 도구 DART의 개발 배경과<br>
+    AI와 함께한 바이브코딩(Vibe Coding) 개발 과정
+  </p>
+  <div class="header-tags">
+    <span class="tag accent">바이브코딩</span>
+    <span class="tag blue">AI-Assisted Dev</span>
+    <span class="tag">Claude Sonnet</span>
+    <span class="tag">Python · PyQt5</span>
+    <span class="tag">AWS S3</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ── 1. 왜 필요했나 ── -->
+  <section id="why">
+    <div class="section-label">Background</div>
+    <h2>왜 필요했나</h2>
+
+    <p>
+      EV(전기차) 서비스 운영에서 <strong>BMS(Battery Management System) 텔레메트리 데이터</strong>는
+      차량 상태 모니터링의 핵심입니다. 그런데 AWS S3에 매일 수십~수백 대 분량의 Parquet 파일이
+      쌓이면서, 데이터 품질을 사람이 직접 눈으로 확인하는 방식은 한계에 부딪혔습니다.
+    </p>
+
+    <div class="grid-2" style="margin-bottom:20px;">
+      <div class="card card-warn">
+        <h3>🔴 기존 방식의 문제</h3>
+        <p>수작업으로 CSV 열어 값 확인 → 오류 발견 시 이미 수일치 데이터가 쌓인 상태.<br>
+        Fleet마다 허용 범위가 달라 규칙이 문서에만 존재 → 담당자마다 기준 해석이 달랐음.</p>
+      </div>
+      <div class="card card-accent">
+        <h3>🟢 필요했던 것</h3>
+        <p>S3에서 자동 취득 → 35개 항목 일괄 검증 → 결과 리포트 생성까지<br>
+        <strong>클릭 한 번으로 처리</strong>되는 도구. 엔지니어가 아닌 팀원도 결과를 바로 읽을 수 있어야 함.</p>
+      </div>
+    </div>
+
+    <div class="quote">
+      "검증 규칙이 70개가 넘는데 매번 수작업으로 확인한다고? 그리고 Fleet마다 예외 규칙도 다른데
+      이걸 사람이 다 외워서 체크한다고? — 이게 말이 되는 상황인가."
+    </div>
+
+    <p>
+      결국 <strong>규칙을 코드로 명문화</strong>하고, 누가 실행해도 동일한 결과를 내는
+      자동화 도구가 반드시 필요했습니다. 그리고 그 결과물이 DART입니다.
+    </p>
+
+    <div class="stat-row" style="margin-top:24px;">
+      <div class="stat-item"><div class="num">35</div><div class="lbl">검증 항목</div></div>
+      <div class="stat-item"><div class="num">71</div><div class="lbl">세부 검사 조건</div></div>
+      <div class="stat-item"><div class="num">4</div><div class="lbl">지원 Fleet</div></div>
+      <div class="stat-item"><div class="num">317</div><div class="lbl">등록 차량 모델</div></div>
+      <div class="stat-item"><div class="num">100+</div><div class="lbl">배치 처리 대수</div></div>
+    </div>
+  </section>
+
+  <!-- ── 2. 어떻게 만들었나: 바이브코딩 ── -->
+  <section id="how">
+    <div class="section-label">Development</div>
+    <h2>어떻게 만들었나 — 바이브코딩</h2>
+
+    <p>
+      DART는 전통적인 스프린트·기획 문서 없이,
+      <strong>AI(Claude)와 대화하며 즉흥적으로 코드를 완성해가는 "바이브코딩(Vibe Coding)"</strong>
+      방식으로 개발됐습니다.
+    </p>
+    <p>
+      바이브코딩은 개발자가 <em>"지금 이 기능이 필요해"</em>라고 AI에게 말하면,
+      AI가 코드를 작성하고 개발자는 그것을 검토·수정하는 방식입니다.
+      기획 → 설계 → 구현의 순서 대신, <strong>아이디어 → 즉시 구현 → 피드백</strong>의
+      짧은 루프가 반복됩니다.
+    </p>
+
+    <div class="quote">
+      "수집 윈도우 상태 머신 구현해줘. IGN이 꺼진 다음 충전이나 슬립 대기 구간 데이터만
+      골라서 16번, 19번, 20번 검증에 써야 해."<br><br>
+      → AI가 즉시 <code>_get_collection_window_mask()</code> 함수를 작성하고 설명을 붙여줬습니다.
+    </div>
+
+    <hr class="divider">
+
+    <h3 style="font-size:16px; margin-bottom:16px; color:var(--text);">개발 진행 타임라인</h3>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-label">Phase 1–2</div>
+        <h4>기반 구조 설계</h4>
+        <p>S3Handler, DataProcessor, BMSDataValidator 클래스 분리. 로깅 모듈 구축.
+        AWS S3 Parquet 다운로드 → CSV 변환 파이프라인 완성.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">Phase 3–4</div>
+        <h4>35개 검증 항목 구현</h4>
+        <p>A 기본 상태(1–10), B 셀 전압(11–16), C 모듈 온도(17–20),
+        D 에너지·전력(21–27), E 복합 로직(28–35) 5개 그룹·71개 조건 코드화.
+        vehicle_master.json 3단계 차량 매칭 도입.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">Phase 5</div>
+        <h4>Fleet 예외 규칙</h4>
+        <p>VWGKALRT: acc_dchg 음수 허용, em_speed ≤ 255, 전류 +1A 기준.
+        RAY: acc 항목 N/A. BOLT 2017: mile_km N/A. 데이터 구간 자동 선별 로직(IGN 기반).</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">Phase 6–7</div>
+        <h4>PyQt5 GUI + 배치 처리</h4>
+        <p>데스크톱 GUI 구현. PID 리스트 기반 100대 이상 배치 자동 검증.
+        통합 결과 Excel 리포트 자동 생성.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">Phase 8–9</div>
+        <h4>HTML 리포트 · 결과 뷰어</h4>
+        <p>generate_html_report() — 브라우저에서 바로 열 수 있는 개별 결과 HTML 생성
+        (도넛 차트, 필터, 검색, 인쇄).<br>
+        report_viewer.html — CSV/XLSX 드래그앤드롭 결과 뷰어 대시보드.</p>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <h3 style="font-size:16px; margin-bottom:16px; color:var(--text);">바이브코딩이란 무엇인가</h3>
+    <div class="grid-2">
+      <div class="card card-blue">
+        <h3>기존 개발 방식</h3>
+        <p>기획서 → 설계 문서 → 스프린트 → 코드 리뷰 → QA → 배포.<br>
+        각 단계에서 컨텍스트 전달 비용 발생. 아이디어→실제 코드까지 수 일~수 주.</p>
+      </div>
+      <div class="card card-accent">
+        <h3>바이브코딩 방식</h3>
+        <p>아이디어를 말로 설명 → AI가 즉시 코드 생성 → 개발자가 검토·방향 조정.<br>
+        <strong>같은 날 안에 새 기능을 프로덕션 코드 수준으로 작성</strong>하는 것이 가능.</p>
+      </div>
+    </div>
+
+    <p style="margin-top:16px;">
+      DART에서 바이브코딩이 특히 효과적이었던 이유는, <strong>검증 규칙의 수가 많고 복잡하지만
+      패턴이 반복적</strong>이기 때문입니다. "항목 22번도 21번과 동일한 구조로, 다만 컬럼명은
+      curr_a이고 범위는 ±1000A야" 라고 말하면 AI가 기존 코드를 참고해 즉시 확장해줬습니다.
+    </p>
+  </section>
+
+  <!-- ── 3. 핵심 설계 결정 ── -->
+  <section id="decisions">
+    <div class="section-label">Key Decisions</div>
+    <h2>핵심 설계 결정 3가지</h2>
+
+    <div class="card card-accent" style="margin-bottom:14px;">
+      <h3>① 규칙을 코드로 — 문서가 아닌 함수로</h3>
+      <p>
+        기존에는 검증 기준이 엑셀 문서에 텍스트로만 존재했습니다.
+        DART는 모든 규칙을 Python 함수로 구현해 <strong>사람이 실행하지 않아도 항상 동일한 결과</strong>를 냅니다.
+        새 규칙 추가는 새 메서드 추가와 같습니다.
+      </p>
+    </div>
+
+    <div class="card card-blue" style="margin-bottom:14px;">
+      <h3>② Fleet/차종 예외는 데이터 기반 자동 적용</h3>
+      <p>
+        VWGKALRT, HKMC, GM, Tesla는 BMS 구조가 다릅니다.
+        vehicle_master.json(317개 모델)으로 3단계 매칭 후 <strong>Fleet별 예외 규칙을 자동 선택</strong>합니다.
+        담당자가 Fleet를 기억하거나 설정할 필요가 없습니다.
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <h3>③ 결과는 누구나 읽을 수 있어야 한다</h3>
+      <p>
+        엔지니어가 아닌 팀원도 검증 결과를 확인할 수 있도록, Excel 외에
+        <strong>브라우저에서 바로 열리는 HTML 리포트</strong>와
+        CSV 드래그앤드롭 <strong>결과 뷰어 대시보드</strong>를 추가했습니다.
+        서버나 추가 설치 없이 파일 하나로 완결됩니다.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── 4. 기술 스택 ── -->
+  <section id="stack">
+    <div class="section-label">Tech Stack</div>
+    <h2>기술 스택</h2>
+
+    <div class="grid-3">
+      <div class="card">
+        <h3>데이터 처리</h3>
+        <p>Python 3.13<br>pandas · NumPy<br>pyarrow (Parquet)<br>openpyxl (Excel)</p>
+      </div>
+      <div class="card">
+        <h3>인프라 · 스토리지</h3>
+        <p>AWS S3 (boto3)<br>Parquet / CSV 포맷<br>vehicle_master.json<br>로컬 캐시 최적화</p>
+      </div>
+      <div class="card">
+        <h3>UI · 리포트</h3>
+        <p>PyQt5 (데스크톱 GUI)<br>HTML + SVG (리포트)<br>PapaParse · SheetJS<br>브라우저 기반 뷰어</p>
+      </div>
+    </div>
+
+    <div class="code-block" style="margin-top:16px;">
+<span class="cm"># 핵심 검증 흐름 (단순화)</span>
+validator = BMSDataValidator()
+results   = validator.validate_file("MACRIOT_2793.parquet")
+
+validator.generate_report("result.xlsx")         <span class="cm"># Excel</span>
+validator.generate_html_report("result.html")    <span class="cm"># 브라우저 리포트</span>
+    </div>
+  </section>
+
+  <!-- ── 5. 마무리 ── -->
+  <section id="closing">
+    <div class="section-label">Closing</div>
+    <h2>바이브코딩으로 배운 것</h2>
+
+    <p>
+      DART 개발에서 AI는 단순한 코드 생성기가 아니었습니다.
+      <strong>"왜 이 규칙이 필요한가"를 함께 생각하는 파트너</strong>였습니다.
+      35개 검증 항목 중 수집 윈도우 상태 머신처럼 까다로운 로직도,
+      "시동 꺼진 뒤 충전·슬립 대기 데이터만 봐야 해" 라는 한 문장으로 출발해
+      실제 작동하는 코드가 됐습니다.
+    </p>
+
+    <p>
+      바이브코딩은 속도가 빠른 대신, <strong>개발자가 결과를 꼼꼼히 검토하고
+      방향을 잡는 역할</strong>을 더 잘 해야 합니다.
+      AI가 코드를 쓰고 개발자가 도메인 판단을 한다 — 이 조합이 DART를 만든 방식입니다.
+    </p>
+
+    <div class="stat-row" style="margin-top:20px;">
+      <div class="stat-item"><div class="num" style="color:#7ab3f5;">9</div><div class="lbl">개발 단계 (Phase)</div></div>
+      <div class="stat-item"><div class="num" style="color:var(--accent);">2,300+</div><div class="lbl">코드 라인 (검증 모듈)</div></div>
+      <div class="stat-item"><div class="num" style="color:#c07aee;">2</div><div class="lbl">신규 HTML 기능</div></div>
+    </div>
+
+    <p style="margin-top:24px; text-align:right; font-size:12px;">
+      <a class="back-link" href="index.html">← 발표 슬라이드로 돌아가기</a>
+    </p>
+  </section>
+
+</div><!-- /container -->
+
+</body>
+</html>
