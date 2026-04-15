@@ -183,21 +183,21 @@
     <h2>왜 필요했나</h2>
 
     <p>
-      EV(전기차) 서비스 운영에서 <strong>BMS(Battery Management System) 텔레메트리 데이터</strong>는
-      차량 상태 모니터링의 핵심입니다. 그런데 AWS S3에 매일 수십~수백 대 분량의 Parquet 파일이
+      EV(전기차) 관리 서비스 운영에서 <strong>BMS(Battery Management System) 데이터</strong>는
+      차량 상태 모니터링 및 분석의 핵심이자 기초입니다. 그런데 AWS S3에 매일 적재되는 수십~수백 대 분량의 Parquet 파일이
       쌓이면서, 데이터 품질을 사람이 직접 눈으로 확인하는 방식은 한계에 부딪혔습니다.
     </p>
 
     <div class="grid-2" style="margin-bottom:20px;">
       <div class="card card-warn">
         <h3>🔴 기존 방식의 문제</h3>
-        <p>수작업으로 CSV 열어 값 확인 → 오류 발견 시 이미 수일치 데이터가 쌓인 상태.<br>
-        Fleet마다 허용 범위가 달라 규칙이 문서에만 존재 → 담당자마다 기준 해석이 달랐음.</p>
+        <p>수작업으로 CSV 열어 값 확인 또는 그래프 눈으로 확인 → 오류 발견 시 이미 수일치 데이터가 쌓인 상태.<br>
+        Fleet마다 허용 범위 및 데이터 파싱 규칙 다름 → 차량 별로 해석이 달라짐.</p>
       </div>
       <div class="card card-accent">
         <h3>🟢 필요했던 것</h3>
         <p>S3에서 자동 취득 → 35개 항목 일괄 검증 → 결과 리포트 생성까지<br>
-        <strong>클릭 한 번으로 처리</strong>되는 도구. 엔지니어가 아닌 팀원도 결과를 바로 읽을 수 있어야 함.</p>
+        <strong>클릭 한 번으로 처리</strong>되는 도구. 담당자가 아닌 누구나 결과를 바로 읽을 수 있어야 함.</p>
       </div>
     </div>
 
@@ -227,7 +227,7 @@
 
     <p>
       DART는 전통적인 스프린트·기획 문서 없이,
-      <strong>AI(Claude)와 대화하며 즉흥적으로 코드를 완성해가는 "바이브코딩(Vibe Coding)"</strong>
+      <strong>AI(agent)와 대화하며 즉흥적으로 코드를 완성해가는 "바이브코딩(Vibe Coding)"</strong>
       방식으로 개발됐습니다.
     </p>
     <p>
@@ -238,8 +238,7 @@
     </p>
 
     <div class="quote">
-      "수집 윈도우 상태 머신 구현해줘. IGN이 꺼진 다음 충전이나 슬립 대기 구간 데이터만
-      골라서 16번, 19번, 20번 검증에 써야 해."<br><br>
+      "IGN이 꺼진 다음 충전이나 슬립 대기 구간 데이터만 골라서 16번, 19번, 20번 검증에 써야 하니 구현해줘."<br><br>
       → AI가 즉시 <code>_get_collection_window_mask()</code> 함수를 작성하고 설명을 붙여줬습니다.
     </div>
 

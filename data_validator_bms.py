@@ -2195,6 +2195,148 @@ class BMSDataValidator:
         off_warn  = -(pass_arc + fail_arc)
         off_na    = -(pass_arc + fail_arc + warn_arc)
 
+        # ── 그래프 데이터 준비 ──
+        cdn_links  = ''
+        graph_css  = ''
+        graph_html = ''
+        chart_js   = ''
+
+        if self.df is not None and len(self.df) > 0:
+            import json as _json
+
+            MAX_PTS = 1500
+            step = max(1, len(self.df) // MAX_PTS)
+            dfs  = self.df.iloc[::step].reset_index(drop=True)
+            total_rows = len(self.df)
+            sample_rows = len(dfs)
+
+            # X축: unix_time → 시:분:초 또는 행 인덱스
+            if 'unix_time' in dfs.columns:
+                try:
+                    ts = pd.to_datetime(dfs['unix_time'], unit='s', utc=True).dt.tz_convert('Asia/Seoul')
+                    x_vals = ts.dt.strftime('%H:%M:%S').tolist()
+                except Exception:
+                    x_vals = dfs['unix_time'].astype(str).tolist()
+            else:
+                x_vals = list(range(sample_rows))
+
+            CC = ['#00c4a0', '#7ab3f5', '#f5a623', '#ff7a7a', '#c07aee', '#5aafff', '#ffd700']
+
+            GROUPS_DEF = [
+                ('SOC',                ['soc_rate', 'soc_display_rate'],                          '%'),
+                ('온도 (Temperature)',  ['module_min_temp', 'module_max_temp', 'module_avg_temp'], '°C'),
+                ('거리·속도',           ['mile_km', 'em_speed_kmh'],                              ''),
+                ('전류·전압 (Pack)',     ['pack_curr', 'pack_volt'],                              ''),
+                ('셀전압 (Cell Volt)',   ['cell_min_volt', 'cell_max_volt'],                       'V'),
+                ('기타 (상태·저항)',     ['ignit_status', 'main_relay_status', 'ir'],              ''),
+            ]
+
+            groups = []
+            for gname, cols, unit in GROUPS_DEF:
+                avail = [c for c in cols if c in dfs.columns]
+                if not avail:
+                    continue
+                series = []
+                for i, col in enumerate(avail):
+                    vals = []
+                    for v in dfs[col]:
+                        try:
+                            fv = float(v)
+                            vals.append(None if pd.isna(fv) else round(fv, 4))
+                        except (TypeError, ValueError):
+                            vals.append(None)
+                    series.append({'name': col, 'data': vals, 'color': CC[i % len(CC)]})
+                groups.append({'name': gname, 'unit': unit, 'series': series})
+
+            if groups:
+                all_data = _json.dumps({'x': x_vals, 'groups': groups}, ensure_ascii=False)
+
+                cdn_links = (
+                    '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>\n'
+                    '<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>\n'
+                    '<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>'
+                )
+
+                graph_css = (
+                    '.graph-section{border-bottom:1px solid rgba(255,255,255,0.06);}'
+                    '.graph-sec-hdr{list-style:none;display:flex;align-items:center;gap:10px;'
+                    'padding:14px 40px;cursor:pointer;font-size:14px;font-weight:700;'
+                    'background:#0d1b2a;user-select:none;}'
+                    '.graph-sec-hdr::-webkit-details-marker{display:none;}'
+                    '.graph-body{background:#0a1520;}'
+                    '.gpanel{border-top:1px solid rgba(255,255,255,0.05);}'
+                    '.gpanel-hdr{list-style:none;display:flex;align-items:center;gap:8px;'
+                    'padding:10px 40px;cursor:pointer;font-size:13px;font-weight:600;'
+                    'background:#0d1b2a;user-select:none;}'
+                    '.gpanel-hdr::-webkit-details-marker{display:none;}'
+                    '.gp-arrow{font-size:10px;color:#8a9abb;transition:transform 0.2s;display:inline-block;}'
+                    '.gpanel[open]>.gpanel-hdr .gp-arrow{transform:rotate(90deg);}'
+                    '.gp-name{color:#e8f0fe;}'
+                    '.gp-unit{font-size:11px;color:#8a9abb;}'
+                    '.gp-note{font-size:10px;color:#4a6a8a;margin-left:auto;}'
+                    '.gpanel-body{padding:8px 40px 16px;background:#0a1520;}'
+                )
+
+                panels_html = ''
+                for gi, g in enumerate(groups):
+                    open_attr = ' open' if gi == 0 else ''
+                    panels_html += (
+                        f'<details class="gpanel"{open_attr}>'
+                        f'<summary class="gpanel-hdr">'
+                        f'<span class="gp-arrow">&#9658;</span>'
+                        f'<span class="gp-name">{g["name"]}</span>'
+                        f'<span class="gp-unit">&nbsp;{g["unit"]}</span>'
+                        f'<span class="gp-note">휠: 확대/축소 &middot; 드래그: 이동 &middot; 더블클릭: 초기화</span>'
+                        f'</summary>'
+                        f'<div class="gpanel-body"><canvas id="gchart-{gi}" height="140"></canvas></div>'
+                        f'</details>'
+                    )
+
+                graph_html = (
+                    '<details class="graph-section" open>'
+                    '<summary class="graph-sec-hdr">&#128202; 데이터 그래프 '
+                    f'<span style="font-size:11px;color:#8a9abb;font-weight:400;">'
+                    f'(샘플 {sample_rows:,}행 / 전체 {total_rows:,}행)</span></summary>'
+                    f'<div class="graph-body">{panels_html}</div>'
+                    '</details>'
+                )
+
+                chart_js = '''<script>
+(function(){
+  var GDATA = ''' + all_data + ''';
+  if(!GDATA||!GDATA.groups) return;
+  var base = {
+    animation: false,
+    responsive: true,
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{labels:{color:'#8a9abb',font:{size:11}}},
+      tooltip:{backgroundColor:'#132236',titleColor:'#e8f0fe',bodyColor:'#8a9abb',
+               callbacks:{label:function(ctx){return ' '+ctx.dataset.label+': '+ctx.parsed.y;}}},
+      zoom:{pan:{enabled:true,mode:'x'},zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:'x'}}
+    },
+    scales:{
+      x:{ticks:{color:'#4a6a8a',maxTicksLimit:14,maxRotation:0},
+         grid:{color:'rgba(255,255,255,0.04)'}},
+      y:{ticks:{color:'#8a9abb'},grid:{color:'rgba(255,255,255,0.07)'}}
+    }
+  };
+  GDATA.groups.forEach(function(g,gi){
+    var canvas = document.getElementById('gchart-'+gi);
+    if(!canvas) return;
+    var datasets = g.series.map(function(s){
+      return {label:s.name,data:s.data,borderColor:s.color,
+              backgroundColor:s.color+'18',borderWidth:1.5,
+              pointRadius:0,fill:false,tension:0.2,spanGaps:true};
+    });
+    var opts = JSON.parse(JSON.stringify(base));
+    if(g.unit) opts.scales.y.title={display:true,text:g.unit,color:'#8a9abb'};
+    var chart = new Chart(canvas,{type:'line',data:{labels:GDATA.x,datasets:datasets},options:opts});
+    canvas.addEventListener('dblclick',function(){chart.resetZoom();});
+  });
+})();
+</script>'''
+
         html = f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -2232,12 +2374,14 @@ class BMSDataValidator:
   tr.hidden {{ display:none; }}
   .footer {{ text-align:center; padding:16px; font-size:11px; color:#4a6a8a; border-top:1px solid rgba(255,255,255,0.05); }}
   @media print {{
-    .filter-bar, .footer {{ display:none; }}
+    .filter-bar, .footer, .graph-section {{ display:none; }}
     body {{ background:#fff; color:#000; }}
     table {{ font-size:11px; }}
     th {{ background:#dce6f0 !important; color:#000 !important; }}
   }}
+  {graph_css}
 </style>
+{cdn_links}
 </head>
 <body>
 
@@ -2287,6 +2431,8 @@ class BMSDataValidator:
   </div>
 </div>
 
+{graph_html}
+
 <div class="filter-bar">
   <span>필터:</span>
   <button class="fbtn active-pass" onclick="toggle(this,'PASS')">PASS</button>
@@ -2316,7 +2462,7 @@ class BMSDataValidator:
 </div>
 
 <div class="footer">
-  PRDMRT · BMS Data Quality Assurance System &nbsp;·&nbsp; {generated_at}
+  DART · BMS Data Quality Assurance System &nbsp;·&nbsp; {generated_at}
 </div>
 
 <script>
@@ -2348,6 +2494,7 @@ class BMSDataValidator:
     }});
   }}
 </script>
+{chart_js}
 </body>
 </html>"""
 
