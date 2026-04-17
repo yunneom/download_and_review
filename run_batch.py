@@ -97,15 +97,22 @@ def main():
                         help="결과/리포트 저장 디렉터리 (기본: 현재 디렉터리)")
     args = parser.parse_args()
 
-    ts          = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir  = Path(args.output_dir)
-    result_path = str(output_dir / "results" / f"batch_{ts}.parquet")
-    report_path = str(output_dir / "reports" / f"trend_{ts}.html")
+    ts         = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = Path(args.output_dir).resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    result_path = str(output_dir / f"batch_{ts}.parquet")
+    report_path = str(output_dir / f"trend_{ts}.html")
+
+    print(f"저장 위치: {output_dir}")
 
     # ── 분석 전용 모드 ──
     if args.analyze_only:
-        print(f"기존 결과 로드: {args.analyze_only}")
-        analyzer = TrendAnalyzer.from_parquet(args.analyze_only)
+        src = Path(args.analyze_only).resolve()
+        # 분석 결과는 입력 파일과 같은 폴더에 저장
+        report_path = str(src.parent / f"trend_{ts}.html")
+        print(f"기존 결과 로드: {src}")
+        analyzer = TrendAnalyzer.from_parquet(str(src))
         print_summary(analyzer)
         analyzer.generate_html_report(report_path)
         print(f"리포트: {report_path}")
@@ -146,7 +153,8 @@ def main():
     print_summary(analyzer)
     analyzer.generate_html_report(report_path)
 
-    print(f"\n결과 parquet : {result_path}")
+    print(f"\n저장 위치    : {output_dir}")
+    print(f"결과 parquet : {result_path}")
     print(f"트렌드 리포트: {report_path}")
 
 
