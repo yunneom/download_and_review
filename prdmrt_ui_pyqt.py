@@ -857,15 +857,17 @@ class WorkerThread(QThread):
         
         self.log_signal.emit(f"[SUCCESS] 배치 다운로드 완료: {success_count}개 파일")
         self.log_signal.emit(f"[INFO] 저장 위치: {download_base}")
-        
+
         # 다운로드 완료 후 자동으로 BMS 검증 수행
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         if success_count > 0:
             self.log_signal.emit("")
             self.log_signal.emit("=" * 70)
             self.log_signal.emit("[INFO] BMS 데이터 검증 시작...")
             self.log_signal.emit("=" * 70)
             self._auto_bms_validation(download_base, pid_list, pid_download_status, start_date, end_date)
-        
+            self._run_trend_analysis(download_base, pid_list, server_type, ts)
+
         self.progress_signal.emit(100)
         self.finished_signal.emit(True, f"{success_count}개 파일 다운로드 완료")
     
@@ -1012,7 +1014,65 @@ class WorkerThread(QThread):
             self.log_signal.emit(f"[SUCCESS] 총 {total_validated}개 파일 검증 완료")
         else:
             self.log_signal.emit("[WARNING] 검증할 CSV/Parquet 파일을 찾지 못했습니다.")
-    
+
+    def _run_trend_analysis(self, base_folder, pid_list, server_type, ts):
+        """다운로드된 parquet 파일들로 트렌드 분석 HTML 생성"""
+        try:
+            import pandas as pd
+            from batch_validator import BatchValidator, DEFAULT_RULES
+            from trend_analyzer import TrendAnalyzer
+
+            self.log_signal.emit("")
+            self.log_signal.emit("=" * 70)
+            self.log_signal.emit("[INFO] 트렌드 분석 시작...")
+            self.log_signal.emit("=" * 70)
+
+            bv = BatchValidator(bucket="local", rules=DEFAULT_RULES)
+            all_records = []
+
+            for pid in pid_list:
+                pid_folder = os.path.join(base_folder, str(pid))
+                if not os.path.exists(pid_folder):
+                    continue
+                parquet_files = sorted(f for f in os.listdir(pid_folder) if f.endswith('.parquet'))
+                for fname in parquet_files:
+                    fpath = os.path.join(pid_folder, fname)
+                    try:
+                        df = pd.read_parquet(fpath)
+                        # 파일명 파싱: MACRIOT_2793_2026-04-13_v20.parquet
+                        name_parts = fname.replace('.parquet', '').split('_')
+                        obd_co_id = name_parts[0] if name_parts else ''
+                        date_str = name_parts[2] if len(name_parts) > 2 else ''
+                        meta = {
+                            'pid': str(pid),
+                            'vehicle_id': f"{server_type}_{pid}",
+                            'server_type': server_type,
+                            'obd_co_id': obd_co_id,
+                            'date': date_str,
+                            's3_key': fname,
+                        }
+                        records = bv._validate_df(df, meta)
+                        all_records.extend(records)
+                        self.log_signal.emit(f"[TREND] {fname}: {len(records)}개 규칙 분석")
+                    except Exception as e:
+                        self.log_signal.emit(f"[WARNING] 트렌드 분석 스킵: {fname} - {e}")
+
+            if not all_records:
+                self.log_signal.emit("[WARNING] 트렌드 분석할 데이터가 없습니다.")
+                return
+
+            results_df = pd.DataFrame(all_records)
+            analyzer = TrendAnalyzer(results_df)
+            trend_path = os.path.join(base_folder, f"trend_{ts}.html")
+            analyzer.generate_html_report(trend_path)
+            self.log_signal.emit(f"[SUCCESS] 트렌드 리포트 생성: {os.path.basename(trend_path)}")
+            self.log_signal.emit(f"[INFO] 위치: {trend_path}")
+
+        except Exception as e:
+            import traceback
+            self.log_signal.emit(f"[ERROR] 트렌드 분석 실패: {e}")
+            self.log_signal.emit(f"[ERROR] {traceback.format_exc()}")
+
     def _save_integrated_result_excel(self, df, output_path):
         """
         통합 결과를 서식이 적용된 Excel 파일로 저장
