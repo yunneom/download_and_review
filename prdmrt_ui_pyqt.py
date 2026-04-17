@@ -165,7 +165,19 @@ class DataValidationDialog(QDialog):
         
         btn_layout.addStretch()
         layout.addLayout(btn_layout)
-        
+
+        # 검증 결과 테이블
+        from PyQt5.QtWidgets import QTableWidget, QHeaderView
+        self.result_table = QTableWidget()
+        self.result_table.setColumnCount(7)
+        self.result_table.setHorizontalHeaderLabels(['ID', 'Column', 'Check', 'Criteria', 'Status', 'Fail Count', 'Details'])
+        self.result_table.horizontalHeader().setStretchLastSection(True)
+        self.result_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.result_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.result_table.setMinimumHeight(300)
+        self.result_table.hide()
+        layout.addWidget(self.result_table)
+
         self.setLayout(layout)
     
     def select_csv_file(self):
@@ -296,19 +308,57 @@ main_relay_status,valid_values=[0;1],메인 릴레이 상태"""
             msg += f"\n결과 파일: {output_path}"
             
             QMessageBox.information(self, "검증 완료", msg)
-            
+
+            self._show_results_table(results)
+
             # 결과 파일 열기 옵션
             reply = QMessageBox.question(
-                self, "결과 확인", 
+                self, "결과 확인",
                 "결과 파일을 여시겠습니까?",
                 QMessageBox.Yes | QMessageBox.No
             )
-            
+
             if reply == QMessageBox.Yes:
                 os.startfile(output_path)
-            
+
         except Exception as e:
             QMessageBox.critical(self, "오류", f"검증 실패:\n{str(e)}")
+
+    def _show_results_table(self, results):
+        """검증 결과를 상태별 색상으로 테이블에 표시"""
+        from PyQt5.QtWidgets import QTableWidgetItem
+        from PyQt5.QtGui import QColor
+
+        STATUS_COLORS = {
+            'PASS':    ('#d4f5e9', '#145a32'),
+            'FAIL':    ('#fde8e8', '#922b21'),
+            'WARNING': ('#fef9e7', '#7d6608'),
+            'N/A':     ('#f0f0f0', '#555555'),
+        }
+
+        self.result_table.setRowCount(len(results))
+        for row_idx, r in enumerate(results):
+            status = r.get('Status', '')
+            bg, fg = STATUS_COLORS.get(status, ('#ffffff', '#000000'))
+            values = [
+                str(r.get('ID', '')),
+                str(r.get('Column', '')),
+                str(r.get('Check', '')),
+                str(r.get('Criteria', '')),
+                status,
+                str(r.get('Fail_Count', 0)),
+                str(r.get('Details', '')),
+            ]
+            for col_idx, val in enumerate(values):
+                item = QTableWidgetItem(val)
+                item.setBackground(QColor(bg))
+                item.setForeground(QColor(fg))
+                self.result_table.setItem(row_idx, col_idx, item)
+
+        self.result_table.resizeColumnsToContents()
+        self.result_table.show()
+        if self.height() < 950:
+            self.resize(self.width(), 950)
 
 
 class WorkerThread(QThread):

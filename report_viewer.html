@@ -183,6 +183,33 @@
   /* no-result */
   .no-result { padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
 
+  /* ── VIEW TABS ── */
+  .view-tabs {
+    display: flex; gap: 6px; margin-bottom: 12px;
+  }
+  .vtab {
+    padding: 5px 18px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.15);
+    background: none; color: var(--muted); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; font-family: inherit;
+  }
+  .vtab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+  /* ── GRAPH SECTION ── */
+  #graph-section { display: none; }
+  .chart-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;
+  }
+  .chart-card {
+    background: var(--card); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; padding: 16px 18px;
+  }
+  .chart-card h4 { font-size: 12px; color: var(--muted); margin-bottom: 12px; letter-spacing: 0.5px; font-weight: 600; }
+  .chart-card-wide {
+    background: var(--card); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; padding: 16px 18px; margin-bottom: 14px;
+  }
+  .chart-card-wide h4 { font-size: 12px; color: var(--muted); margin-bottom: 12px; letter-spacing: 0.5px; font-weight: 600; }
+
   /* print */
   @media print {
     .header, .file-bar .reload-btn, .ctrl-bar, .donut-wrap, .group-panel { display: none !important; }
@@ -277,8 +304,32 @@
     <div class="group-panel" id="group-panel"></div>
   </div>
 
+  <!-- view tabs -->
+  <div class="view-tabs">
+    <button class="vtab active" id="vtab-table" onclick="showView('table')">📋 테이블</button>
+    <button class="vtab" id="vtab-graph" onclick="showView('graph')">📊 그래프</button>
+  </div>
+
+  <!-- graph section -->
+  <div id="graph-section">
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h4>STATUS 분포</h4>
+        <canvas id="chart-status" height="220"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4>그룹별 PASS 율</h4>
+        <canvas id="chart-group" height="220"></canvas>
+      </div>
+    </div>
+    <div class="chart-card-wide">
+      <h4>FAIL 항목 상위 10개 (Fail Count 기준)</h4>
+      <canvas id="chart-topfail" height="160"></canvas>
+    </div>
+  </div>
+
   <!-- controls -->
-  <div class="ctrl-bar">
+  <div class="ctrl-bar" id="table-ctrl">
     <span class="lbl">필터:</span>
     <button class="fbtn fbtn-pass" data-status="PASS"    onclick="toggleFilter(this)">PASS</button>
     <button class="fbtn fbtn-fail" data-status="FAIL"    onclick="toggleFilter(this)">FAIL</button>
@@ -288,7 +339,7 @@
   </div>
 
   <!-- table -->
-  <div class="table-wrap">
+  <div class="table-wrap" id="table-wrap-div">
     <table id="result-table">
       <thead>
         <tr>
@@ -307,10 +358,9 @@
   </div>
 </div>
 
-<!-- PapaParse for CSV parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<!-- SheetJS for XLSX parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <script>
 // ── STATE ──
@@ -530,6 +580,110 @@ function resetViewer() {
 }
 
 function printReport() { window.print(); }
+
+// ── VIEW TOGGLE ──
+function showView(view) {
+  const isGraph = view === 'graph';
+  document.getElementById('graph-section').style.display = isGraph ? 'block' : 'none';
+  document.getElementById('table-ctrl').style.display    = isGraph ? 'none' : 'flex';
+  document.getElementById('table-wrap-div').style.display = isGraph ? 'none' : 'block';
+  document.getElementById('vtab-table').classList.toggle('active', !isGraph);
+  document.getElementById('vtab-graph').classList.toggle('active',  isGraph);
+  if (isGraph) renderCharts();
+}
+
+// ── CHARTS ──
+let chartStatus = null, chartGroup = null, chartTopFail = null;
+
+const CHART_DEFAULTS = {
+  color: '#e8f0fe',
+  plugins: { legend: { labels: { color: '#8a9abb', font: { size: 11 } } } },
+  scales: {
+    x: { ticks: { color: '#8a9abb', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+    y: { ticks: { color: '#8a9abb', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+  }
+};
+
+function renderCharts() {
+  const counts = { PASS: 0, FAIL: 0, WARNING: 0, 'N/A': 0 };
+  allRows.forEach(r => { const s = r.Status || ''; if (s in counts) counts[s]++; });
+
+  // ── 1. Status 도넛 ──
+  if (chartStatus) chartStatus.destroy();
+  chartStatus = new Chart(document.getElementById('chart-status'), {
+    type: 'doughnut',
+    data: {
+      labels: ['PASS', 'FAIL', 'WARNING', 'N/A'],
+      datasets: [{ data: [counts.PASS, counts.FAIL, counts.WARNING, counts['N/A']],
+        backgroundColor: ['rgba(0,196,160,0.8)', 'rgba(255,90,90,0.8)', 'rgba(245,166,35,0.8)', 'rgba(122,143,168,0.5)'],
+        borderColor: ['#00c4a0','#ff5a5a','#f5a623','#7a8fa8'], borderWidth: 2 }]
+    },
+    options: {
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'right', labels: { color: '#8a9abb', font: { size: 11 }, padding: 10 } }
+      }
+    }
+  });
+
+  // ── 2. 그룹별 PASS율 가로 바 ──
+  const groupLabels = [], groupPass = [], groupFail = [], groupWarn = [];
+  Object.entries(GROUPS).forEach(([gname, prefixes]) => {
+    const gRows = allRows.filter(r => prefixes.some(p => (r.ID || '').startsWith(p)));
+    groupLabels.push(gname);
+    groupPass.push(gRows.filter(r => r.Status === 'PASS').length);
+    groupFail.push(gRows.filter(r => r.Status === 'FAIL').length);
+    groupWarn.push(gRows.filter(r => r.Status === 'WARNING').length);
+  });
+
+  if (chartGroup) chartGroup.destroy();
+  chartGroup = new Chart(document.getElementById('chart-group'), {
+    type: 'bar',
+    data: {
+      labels: groupLabels,
+      datasets: [
+        { label: 'PASS',    data: groupPass, backgroundColor: 'rgba(0,196,160,0.75)', borderRadius: 4 },
+        { label: 'FAIL',    data: groupFail, backgroundColor: 'rgba(255,90,90,0.75)',  borderRadius: 4 },
+        { label: 'WARNING', data: groupWarn, backgroundColor: 'rgba(245,166,35,0.75)', borderRadius: 4 },
+      ]
+    },
+    options: {
+      indexAxis: 'y', responsive: true,
+      plugins: { legend: { labels: { color: '#8a9abb', font: { size: 10 } } } },
+      scales: {
+        x: { stacked: true, ticks: { color: '#8a9abb', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { stacked: true, ticks: { color: '#8a9abb', font: { size: 10 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  // ── 3. Top FAIL 항목 ──
+  const failRows = allRows
+    .filter(r => r.Status === 'FAIL' && Number(r.Fail_Count) > 0)
+    .sort((a, b) => Number(b.Fail_Count) - Number(a.Fail_Count))
+    .slice(0, 10);
+
+  const failLabels = failRows.map(r => (r.ID || '') + ' ' + (r.Column || '').substring(0, 18));
+  const failCounts = failRows.map(r => Number(r.Fail_Count));
+
+  if (chartTopFail) chartTopFail.destroy();
+  chartTopFail = new Chart(document.getElementById('chart-topfail'), {
+    type: 'bar',
+    data: {
+      labels: failLabels,
+      datasets: [{ label: 'Fail Count', data: failCounts,
+        backgroundColor: 'rgba(255,90,90,0.75)', borderColor: '#ff5a5a', borderWidth: 1, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8a9abb', font: { size: 10 }, maxRotation: 30 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { ticks: { color: '#8a9abb', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
+    }
+  });
+}
 </script>
 </body>
 </html>

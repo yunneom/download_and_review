@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI로 발표자료 만들기 — 프롬프트 가이드</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue:    #0071e3;
+    --blue-lt: #e8f0fd;
+    --green:   #34c759;
+    --orange:  #ff9500;
+    --purple:  #bf5af2;
+    --red:     #ff3b30;
+    --bg:      #ffffff;
+    --bg2:     #f5f5f7;
+    --text:    #1d1d1f;
+    --sub:     #6e6e73;
+    --border:  #d2d2d7;
+    --shadow:  0 2px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text);
+    overflow: hidden; height: 100vh; width: 100vw;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* SLIDES */
+  .slide-container { position: relative; width: 100%; height: 100vh; }
+  .slide {
+    position: absolute; inset: 0; display: none;
+    flex-direction: column; padding: 44px 64px;
+    opacity: 0; transition: opacity 0.3s ease; background: var(--bg);
+  }
+  .slide.active { display: flex; opacity: 1; }
+
+  /* NAV */
+  .nav {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,0.92); border: 1px solid var(--border);
+    border-radius: 32px; padding: 8px 18px; z-index: 100;
+    backdrop-filter: blur(12px); box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  .nav button {
+    background: none; border: 1px solid var(--border); color: var(--text);
+    padding: 5px 16px; border-radius: 20px; cursor: pointer; font-size: 13px;
+    font-family: inherit; font-weight: 500; transition: all 0.2s;
+  }
+  .nav button:hover { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .page-info { font-size: 12px; color: var(--sub); min-width: 56px; text-align: center; font-weight: 500; }
+  .dots { display: flex; gap: 5px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); cursor: pointer; transition: background 0.2s; }
+  .dot.active { background: var(--blue); }
+  .key-hint { position: fixed; bottom: 70px; right: 28px; font-size: 11px; color: var(--sub); opacity: 0.5; }
+
+  /* TYPOGRAPHY */
+  .slide-tag { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--blue); margin-bottom: 8px; }
+  h2 { font-size: 30px; font-weight: 800; letter-spacing: -0.8px; margin-bottom: 24px; }
+  h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  p  { font-size: 14px; color: var(--sub); line-height: 1.7; }
+
+  /* CARD */
+  .card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px 22px; box-shadow: var(--shadow);
+  }
+  .card-blue   { border-top: 3px solid var(--blue); }
+  .card-green  { border-top: 3px solid var(--green); }
+  .card-orange { border-top: 3px solid var(--orange); }
+  .card-purple { border-top: 3px solid var(--purple); }
+
+  /* CODE BLOCK */
+  .prompt-box {
+    background: #1c1c1e; border-radius: 12px; padding: 16px 20px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12.5px; color: #e5e5ea; line-height: 1.8; overflow-x: auto;
+    margin: 10px 0;
+  }
+  .prompt-box .cm   { color: #636366; }
+  .prompt-box .hl   { color: #ffd60a; font-weight: 600; }
+  .prompt-box .kw   { color: #ff9f0a; }
+  .prompt-box .val  { color: #30d158; }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+  /* STEP */
+  .step-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: white;
+              font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .step-content h4 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .step-content p  { font-size: 13px; color: var(--sub); }
+
+  /* BADGE */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge-blue   { background: var(--blue-lt); color: var(--blue); }
+  .badge-green  { background: rgba(52,199,89,0.12); color: #1a7f37; }
+  .badge-orange { background: rgba(255,149,0,0.12); color: #9a5700; }
+  .badge-purple { background: rgba(191,90,242,0.12); color: #7f3fbf; }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+  /* SLIDE 1 */
+  #slide-1 {
+    background: linear-gradient(150deg, #f0f6ff 0%, #ffffff 50%, #f5f5f7 100%);
+    justify-content: center;
+  }
+  .title-badge {
+    display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--blue); background: var(--blue-lt);
+    padding: 5px 14px; border-radius: 20px; margin-bottom: 20px;
+  }
+  .title-main { font-size: 52px; font-weight: 900; line-height: 1.1; letter-spacing: -2px; margin-bottom: 16px; }
+  .title-main span { color: var(--blue); }
+  .title-sub { font-size: 17px; color: var(--sub); max-width: 560px; line-height: 1.65; margin-bottom: 28px; }
+
+  /* HIGHLIGHT BOX */
+  .hl-box {
+    background: var(--blue-lt); border: 1px solid #bcd6f9; border-radius: 12px;
+    padding: 14px 18px; font-size: 14px; color: var(--text); line-height: 1.7;
+  }
+  .hl-box strong { color: var(--blue); }
+
+  /* QUOTE */
+  .quote {
+    border-left: 3px solid var(--blue); background: var(--blue-lt);
+    border-radius: 0 12px 12px 0; padding: 14px 18px;
+    font-size: 14px; font-style: italic; line-height: 1.75; margin: 12px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="slide-container">
+
+  <!-- SLIDE 1 · TITLE -->
+  <div class="slide active" id="slide-1">
+    <div style="max-width:760px;">
+      <div class="title-badge">Vibe Coding · AI-Assisted Presentation</div>
+      <div class="title-main"><span>AI</span>로 발표자료<br>만드는 법</div>
+      <div class="title-sub">
+        Claude(AI)에게 어떻게 요청하면 좋은 발표자료가 나오는지<br>
+        코드 프로젝트부터 일반 발표까지 — 프롬프트 가이드
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <span class="badge badge-blue">바이브코딩</span>
+        <span class="badge badge-green">HTML 슬라이드</span>
+        <span class="badge badge-orange">프롬프트 설계</span>
+        <span class="badge badge-purple">반복 개선</span>
+      </div>
+    </div>
+    <div style="position:absolute; right:64px; top:50%; transform:translateY(-50%); opacity:0.06; font-size:200px; line-height:1; pointer-events:none;">✦</div>
+  </div>
+
+  <!-- SLIDE 2 · 핵심 원칙 -->
+  <div class="slide" id="slide-2">
+    <div class="slide-tag">Core Principles</div>
+    <h2>AI 발표자료의 3가지 핵심 원칙</h2>
+
+    <div class="grid-3" style="flex:1; align-items:start;">
+      <div class="card card-blue">
+        <div style="font-size:28px; margin-bottom:10px;">🎯</div>
+        <h3>목적을 먼저 말해라</h3>
+        <p style="margin-bottom:12px;">
+          "발표자료 만들어줘"가 아니라<br>
+          <strong style="color:var(--text);">"누구에게, 무엇을, 왜"</strong>를 먼저 설명한다.
+        </p>
+        <div class="hl-box" style="font-size:13px;">
+          <strong>나쁜 예:</strong> 발표자료 만들어줘<br>
+          <strong>좋은 예:</strong> 개발팀 리뷰에서 BMS 검증 도구를 소개할 10페이지 HTML 슬라이드 만들어줘
+        </div>
+      </div>
+
+      <div class="card card-green">
+        <div style="font-size:28px; margin-bottom:10px;">🧩</div>
+        <h3>콘텐츠를 분리해라</h3>
+        <p style="margin-bottom:12px;">
+          디자인 요청과 내용 요청을 섞지 않는다.<br>
+          <strong style="color:var(--text);">내용 먼저 → 디자인 나중</strong>의 순서를 지킨다.
+        </p>
+        <div class="hl-box" style="font-size:13px;">
+          1단계: 슬라이드 구성(목차) 잡기<br>
+          2단계: 각 슬라이드 내용 채우기<br>
+          3단계: 디자인/스타일 적용
+        </div>
+      </div>
+
+      <div class="card card-orange">
+        <div style="font-size:28px; margin-bottom:10px;">🔄</div>
+        <h3>반복해서 개선해라</h3>
+        <p style="margin-bottom:12px;">
+          한 번에 완성하려 하지 않는다.<br>
+          <strong style="color:var(--text);">실행 → 피드백 → 수정</strong>의 루프를 반복한다.
+        </p>
+        <div class="hl-box" style="font-size:13px;">
+          "4페이지 색상이 다른 페이지와 안 맞아"<br>
+          "마지막 섹션을 빼고 싶어"<br>
+          "Apple PPT처럼 바꿔줘"
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 · 프롬프트 구조 -->
+  <div class="slide" id="slide-3">
+    <div class="slide-tag">Prompt Structure</div>
+    <h2>프롬프트 기본 구조</h2>
+
+    <div class="grid-2" style="flex:1; gap:16px;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card card-blue">
+          <h3 style="margin-bottom:12px;">필수 4가지 요소</h3>
+          <div class="step-row"><div class="step-num">1</div><div class="step-content"><h4>형식 (Format)</h4><p>HTML 슬라이드? PPT? 문서형? 무엇으로 만들지 명시</p></div></div>
+          <div class="step-row"><div class="step-num">2</div><div class="step-content"><h4>목적 (Purpose)</h4><p>누구에게, 어떤 자리에서 발표할 것인지</p></div></div>
+          <div class="step-row"><div class="step-num">3</div><div class="step-content"><h4>내용 (Content)</h4><p>슬라이드에 담을 핵심 정보, 수치, 흐름</p></div></div>
+          <div class="step-row" style="margin-bottom:0;"><div class="step-num">4</div><div class="step-content"><h4>스타일 (Style)</h4><p>색상, 톤, 참고할 디자인 예시</p></div></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:8px;">스타일 지정 방법</h3>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:13px; color:var(--sub);">
+            <div style="padding:6px 10px; background:var(--bg2); border-radius:8px;">참고 디자인 언급: <strong style="color:var(--text);">"Apple PPT처럼"</strong></div>
+            <div style="padding:6px 10px; background:var(--bg2); border-radius:8px;">색상 지정: <strong style="color:var(--text);">"배경 흰색, 포인트 파란색"</strong></div>
+            <div style="padding:6px 10px; background:var(--bg2); border-radius:8px;">기존 파일 기반: <strong style="color:var(--text);">"dart_about.html과 같은 색상으로"</strong></div>
+            <div style="padding:6px 10px; background:var(--bg2); border-radius:8px;">분위기 표현: <strong style="color:var(--text);">"깔끔하고 전문적으로"</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card card-purple">
+          <h3 style="margin-bottom:10px;">프롬프트 템플릿</h3>
+          <div class="prompt-box">
+<span class="cm"># 이 구조로 요청하면 됩니다</span>
+
+<span class="hl">[형식]</span> HTML 슬라이드(키보드 ← → 이동)로 만들어줘
+
+<span class="hl">[목적]</span> 개발팀 리뷰에서 {프로젝트명}을
+발표하기 위한 자료야
+
+<span class="hl">[내용]</span> 포함할 내용:
+- 배경: {왜 만들었나}
+- 핵심 기능: {무엇을 하나}
+- 기술 스택: {어떻게 만들었나}
+- 결과/성과: {어떤 효과가 있나}
+
+<span class="hl">[스타일]</span> Apple 발표자료처럼
+깔끔하게, 다크 테마, 총 8페이지
+          </div>
+        </div>
+
+        <div class="hl-box" style="font-size:13px;">
+          <strong>💡 팁:</strong> 처음엔 구조(목차)만 먼저 잡고, "이 구조로 맞으면 각 슬라이드 내용 채워줘"라고 2단계로 진행하면 더 정확한 결과가 나옵니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 · 코드 프로젝트 발표 -->
+  <div class="slide" id="slide-4">
+    <div class="slide-tag">Code Project Presentation</div>
+    <h2>코드 프로젝트 발표자료 만들기</h2>
+
+    <div class="grid-2" style="flex:1; gap:16px;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card card-blue">
+          <h3 style="margin-bottom:10px;">추천 슬라이드 구성 (7~10페이지)</h3>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+            <div style="display:flex; gap:10px; align-items:center; padding:5px 8px; background:var(--blue-lt); border-radius:8px;">
+              <span style="font-weight:800; color:var(--blue); min-width:18px;">1</span>
+              <span><strong>Title</strong> — 프로젝트명, 한줄 설명, 핵심 수치</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; padding:5px 8px; background:var(--bg2); border-radius:8px;">
+              <span style="font-weight:800; color:var(--sub); min-width:18px;">2</span>
+              <span><strong>Background</strong> — 왜 필요했나 (문제 정의)</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; padding:5px 8px; background:var(--bg2); border-radius:8px;">
+              <span style="font-weight:800; color:var(--sub); min-width:18px;">3</span>
+              <span><strong>Architecture</strong> — 전체 구조, 데이터 흐름</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; padding:5px 8px; background:var(--bg2); border-radius:8px;">
+              <span style="font-weight:800; color:var(--sub); min-width:18px;">4</span>
+              <span><strong>Key Features</strong> — 핵심 기능 2~3개 상세</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; padding:5px 8px; background:var(--bg2); border-radius:8px;">
+              <span style="font-weight:800; color:var(--sub); min-width:18px;">5</span>
+              <span><strong>Tech Stack</strong> — 기술 선택 이유 포함</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; padding:5px 8px; background:var(--bg2); border-radius:8px;">
+              <span style="font-weight:800; color:var(--sub); min-width:18px;">6</span>
+              <span><strong>Results</strong> — 성과, 수치, Before/After</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; padding:5px 8px; background:var(--bg2); border-radius:8px;">
+              <span style="font-weight:800; color:var(--sub); min-width:18px;">7</span>
+              <span><strong>Summary</strong> — 핵심 가치 요약, 다음 단계</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card card-orange">
+          <h3 style="margin-bottom:10px;">실제 사용 프롬프트 예시 (이번 DART)</h3>
+          <div class="prompt-box" style="font-size:11.5px;">
+<span class="cm"># 실제로 사용한 프롬프트 흐름</span>
+
+<span class="val">Step 1.</span> 구조 잡기
+"DART BMS 검증 도구 발표자료를 HTML 슬라이드로
+만들어줘. 키보드 이동, 다크 테마.
+포함: 배경/파이프라인/검증항목/Fleet예외/
+성능최적화/신규기능/요약"
+
+<span class="val">Step 2.</span> 디자인 개선
+"Apple PPT처럼 화이트 테마로 바꿔줘.
+dart_about.html과 같은 색상 써줘"
+
+<span class="val">Step 3.</span> 내용 수정
+"4페이지 출력 형식에서 XLSX 색상코딩을
+조건부 서식으로 바꿔줘"
+
+<span class="val">Step 4.</span> 기능 추가
+"마지막에 웹 인터페이스 슬라이드 추가해줘"
+          </div>
+        </div>
+
+        <div class="hl-box" style="font-size:13px;">
+          <strong>핵심:</strong> README나 코드 구조를 붙여넣으면 AI가 내용을 알아서 정리합니다. 코드/문서가 있다면 그것부터 공유하세요.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5 · 일반 발표자료 -->
+  <div class="slide" id="slide-5">
+    <div class="slide-tag">General Presentation</div>
+    <h2>일반 발표자료 만들기</h2>
+
+    <div class="grid-2" style="flex:1; gap:16px;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card card-green">
+          <h3 style="margin-bottom:12px;">일반 발표 프롬프트 구조</h3>
+          <div class="prompt-box" style="font-size:12px;">
+<span class="cm"># 일반 발표자료 요청 템플릿</span>
+
+<span class="hl">발표 주제:</span> {주제}
+
+<span class="hl">청중:</span> {누구에게 발표하나}
+  예) 팀장 보고, 전사 공유, 고객 제안
+
+<span class="hl">목표:</span> {이 발표로 무엇을 얻고 싶나}
+  예) 승인, 공감, 이해, 의사결정
+
+<span class="hl">핵심 메시지:</span> {한 문장으로}
+
+<span class="hl">포함할 내용:</span>
+- {항목 1}
+- {항목 2}
+- {항목 3}
+
+<span class="hl">분량:</span> {N페이지, N분 발표}
+<span class="hl">스타일:</span> {참고 디자인 또는 분위기}
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card card-purple">
+          <h3 style="margin-bottom:10px;">상황별 추천 구성</h3>
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
+            <div style="padding:10px 12px; background:var(--bg2); border-radius:10px;">
+              <div style="font-weight:700; margin-bottom:3px;">📊 데이터/분석 보고</div>
+              <div style="color:var(--sub);">배경 → 데이터/방법 → 발견사항 → 시사점 → 제언</div>
+            </div>
+            <div style="padding:10px 12px; background:var(--bg2); border-radius:10px;">
+              <div style="font-weight:700; margin-bottom:3px;">💡 아이디어/제안</div>
+              <div style="color:var(--sub);">문제 정의 → 현황 → 제안 → 기대효과 → 실행계획</div>
+            </div>
+            <div style="padding:10px 12px; background:var(--bg2); border-radius:10px;">
+              <div style="font-weight:700; margin-bottom:3px;">📈 성과 공유</div>
+              <div style="color:var(--sub);">목표 → 실행내용 → 결과(수치) → 배운 점 → 다음 단계</div>
+            </div>
+            <div style="padding:10px 12px; background:var(--bg2); border-radius:10px;">
+              <div style="font-weight:700; margin-bottom:3px;">🎓 교육/공유</div>
+              <div style="color:var(--sub);">왜 중요한가 → 핵심 개념 3가지 → 실습/예시 → 정리</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hl-box" style="font-size:13px;">
+          <strong>💡 스토리텔링 팁:</strong> "이 발표의 핵심 메시지는 한 문장으로 X다"를 먼저 AI에게 알려주면, 전체 흐름이 그 메시지를 향해 자연스럽게 구성됩니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6 · 반복 개선 -->
+  <div class="slide" id="slide-6">
+    <div class="slide-tag">Iteration</div>
+    <h2>반복 개선 — 대화로 완성하기</h2>
+
+    <div class="grid-2" style="flex:1; gap:16px; align-items: start;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card card-blue">
+          <h3 style="margin-bottom:12px;">자주 쓰는 수정 요청 패턴</h3>
+          <div style="display:flex; flex-direction:column; gap:7px; font-size:13px;">
+            <div style="padding:8px 12px; background:var(--blue-lt); border-radius:8px; border-left:3px solid var(--blue);">
+              <strong>디자인 변경:</strong><br>
+              <span style="color:var(--sub);">"3페이지 카드 배경색을 더 밝게 바꿔줘"</span>
+            </div>
+            <div style="padding:8px 12px; background:var(--bg2); border-radius:8px; border-left:3px solid var(--green);">
+              <strong>내용 수정:</strong><br>
+              <span style="color:var(--sub);">"2페이지 세 번째 항목 문구를 더 간결하게"</span>
+            </div>
+            <div style="padding:8px 12px; background:var(--bg2); border-radius:8px; border-left:3px solid var(--orange);">
+              <strong>구조 변경:</strong><br>
+              <span style="color:var(--sub);">"5페이지와 6페이지 순서를 바꿔줘"</span>
+            </div>
+            <div style="padding:8px 12px; background:var(--bg2); border-radius:8px; border-left:3px solid var(--purple);">
+              <strong>추가/삭제:</strong><br>
+              <span style="color:var(--sub);">"마지막에 Q&amp;A 슬라이드 하나 추가해줘"</span>
+            </div>
+            <div style="padding:8px 12px; background:var(--bg2); border-radius:8px; border-left:3px solid var(--red);">
+              <strong>전체 스타일 교체:</strong><br>
+              <span style="color:var(--sub);">"전체를 다크 테마에서 화이트 테마로 바꿔줘"</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card card-orange">
+          <h3 style="margin-bottom:10px;">좋은 피드백 주는 법</h3>
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:13px; color:var(--sub);">
+            <div style="padding:8px 12px; background:var(--bg2); border-radius:8px;">
+              <strong style="color:var(--text);">✗ 모호한 피드백:</strong><br>"좀 더 좋게 만들어줘"
+            </div>
+            <div style="padding:8px 12px; background:rgba(52,199,89,0.08); border-radius:8px; border:1px solid rgba(52,199,89,0.2);">
+              <strong style="color:#1a7f37;">✓ 구체적 피드백:</strong><br>"3페이지 타이틀 폰트가 너무 작아. 28px → 36px로 키워줘"
+            </div>
+            <div style="padding:8px 12px; background:var(--bg2); border-radius:8px;">
+              <strong style="color:var(--text);">✗ 여러 요청 한번에:</strong><br>"디자인도 바꾸고 내용도 고치고 페이지도 추가해줘"
+            </div>
+            <div style="padding:8px 12px; background:rgba(52,199,89,0.08); border-radius:8px; border:1px solid rgba(52,199,89,0.2);">
+              <strong style="color:#1a7f37;">✓ 하나씩 요청:</strong><br>디자인 수정 → 확인 → 내용 수정 → 확인 순서로
+            </div>
+          </div>
+        </div>
+
+        <div class="hl-box" style="font-size:13px;">
+          <strong>실전 팁:</strong> 브라우저에서 직접 열어보고, 마음에 안 드는 부분을 스크린샷 찍어서 "이 부분을 이렇게 바꿔줘"라고 하면 정확도가 훨씬 높아집니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7 · 체크리스트 + 요약 -->
+  <div class="slide" id="slide-7">
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+      <div style="text-align:center; margin-bottom:32px;">
+        <div class="slide-tag" style="text-align:center; margin-bottom:10px;">Summary</div>
+        <h2 style="font-size:36px; letter-spacing:-1px;">발표자료 만들기 체크리스트</h2>
+        <p>이 순서대로 진행하면 대부분의 발표자료를 30분 안에 완성할 수 있습니다</p>
+      </div>
+
+      <div class="grid-3" style="margin-bottom:24px; gap:12px;">
+        <div style="padding:18px 16px; background:var(--blue-lt); border:1px solid #bcd6f9; border-radius:16px;">
+          <div style="font-size:22px; margin-bottom:8px;">📋</div>
+          <div style="font-weight:700; margin-bottom:6px; font-size:14px;">1단계 · 준비 (5분)</div>
+          <div style="font-size:12px; color:var(--sub); line-height:1.8;">
+            ☐ 청중이 누구인지 정의<br>
+            ☐ 핵심 메시지 한 문장 작성<br>
+            ☐ 포함할 내용 목록 작성<br>
+            ☐ 참고할 디자인 결정
+          </div>
+        </div>
+        <div style="padding:18px 16px; background:rgba(52,199,89,0.07); border:1px solid rgba(52,199,89,0.2); border-radius:16px;">
+          <div style="font-size:22px; margin-bottom:8px;">⚡</div>
+          <div style="font-weight:700; margin-bottom:6px; font-size:14px;">2단계 · 생성 (10분)</div>
+          <div style="font-size:12px; color:var(--sub); line-height:1.8;">
+            ☐ 템플릿 프롬프트로 구조 요청<br>
+            ☐ 구조 확인 후 내용 채우기 요청<br>
+            ☐ 브라우저에서 바로 확인<br>
+            ☐ 전체 흐름 검토
+          </div>
+        </div>
+        <div style="padding:18px 16px; background:rgba(191,90,242,0.07); border:1px solid rgba(191,90,242,0.2); border-radius:16px;">
+          <div style="font-size:22px; margin-bottom:8px;">✨</div>
+          <div style="font-weight:700; margin-bottom:6px; font-size:14px;">3단계 · 다듬기 (15분)</div>
+          <div style="font-size:12px; color:var(--sub); line-height:1.8;">
+            ☐ 디자인/색상 피드백<br>
+            ☐ 내용 정확도 검토<br>
+            ☐ 불필요한 슬라이드 제거<br>
+            ☐ 발표 연습 후 최종 수정
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="quote" style="text-align:center; border-left:none; border-top:3px solid var(--blue); border-radius:12px; background:var(--blue-lt);">
+        "AI에게 완성된 결과물을 요청하지 말고, <strong>함께 만들어가는 과정</strong>으로 접근하세요.<br>
+        좋은 발표자료는 좋은 대화에서 나옵니다."
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<nav class="nav">
+  <button onclick="prevSlide()">← 이전</button>
+  <span class="page-info" id="page-info">1 / 7</span>
+  <div class="dots" id="dots"></div>
+  <button onclick="nextSlide()">다음 →</button>
+</nav>
+<div class="key-hint">← → 키로 이동</div>
+
+<script>
+  const TOTAL = 7;
+  let current = 1;
+
+  const dotsEl = document.getElementById('dots');
+  for (let i = 1; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 1 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  }
+
+  function goTo(n) {
+    document.getElementById('slide-' + current).classList.remove('active');
+    dotsEl.children[current - 1].classList.remove('active');
+    current = Math.max(1, Math.min(TOTAL, n));
+    document.getElementById('slide-' + current).classList.add('active');
+    dotsEl.children[current - 1].classList.add('active');
+    document.getElementById('page-info').textContent = current + ' / ' + TOTAL;
+  }
+
+  function nextSlide() { goTo(current + 1); }
+  function prevSlide() { goTo(current - 1); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') nextSlide();
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') prevSlide();
+  });
+</script>
+</body>
+</html>

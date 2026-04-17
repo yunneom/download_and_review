@@ -365,6 +365,16 @@ class BMSDataValidator:
                     # 관련 컬럼 값을 샘플로 추출
                     sample_cols = self._get_error_sample_cols(column, item_id)
                     sample_parts = [f'idx={first_idx}']
+                    if 'signal_kst_ts' in self.df.columns:
+                        ts_val = row.get('signal_kst_ts', None)
+                        if ts_val is not None and pd.notna(ts_val):
+                            try:
+                                import re as _re
+                                _m = _re.search(r'(\d{1,2}:\d{2})', str(ts_val))
+                                if _m:
+                                    sample_parts.append(f'time={_m.group(1)}')
+                            except Exception:
+                                pass
                     for sc in sample_cols:
                         if sc in self.df.columns:
                             val = row[sc]

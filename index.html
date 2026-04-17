@@ -5,300 +5,190 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DART - BMS 데이터 검증 시스템</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --primary: #1a6bcc;
-    --primary-dark: #0f4a99;
-    --accent: #00c4a0;
-    --bg: #0d1b2a;
-    --bg2: #132236;
-    --card: #1a2e45;
-    --text: #e8f0fe;
-    --muted: #8a9abb;
-    --pass: #00c4a0;
-    --fail: #ff5a5a;
-    --warn: #f5a623;
-    --na: #7a8fa8;
+    --primary:  #0071e3;
+    --accent:   #0071e3;
+    --bg:       #ffffff;
+    --bg2:      #f5f5f7;
+    --card:     #ffffff;
+    --text:     #1d1d1f;
+    --muted:    #6e6e73;
+    --border:   #d2d2d7;
+    --pass:     #34c759;
+    --fail:     #ff3b30;
+    --warn:     #ff9500;
+    --na:       #8e8e93;
+    --blue-lt:  #e8f0fd;
+    --shadow:   0 2px 16px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
   }
 
   body {
-    font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg);
     color: var(--text);
     overflow: hidden;
     height: 100vh;
     width: 100vw;
+    -webkit-font-smoothing: antialiased;
   }
 
   /* ─── SLIDES ─── */
-  .slide-container {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-  }
+  .slide-container { position: relative; width: 100%; height: 100vh; }
 
   .slide {
-    position: absolute;
-    inset: 0;
-    display: none;
-    flex-direction: column;
-    padding: 40px 60px;
-    opacity: 0;
-    transition: opacity 0.4s ease;
+    position: absolute; inset: 0;
+    display: none; flex-direction: column;
+    padding: 36px 56px;
+    opacity: 0; transition: opacity 0.35s ease;
+    background: var(--bg);
   }
 
-  .slide.active {
-    display: flex;
-    opacity: 1;
-  }
+  .slide.active { display: flex; opacity: 1; }
 
   /* ─── NAV ─── */
   .nav {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: rgba(26,46,69,0.9);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 32px;
-    padding: 10px 20px;
-    z-index: 100;
-    backdrop-filter: blur(8px);
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(255,255,255,0.92); border: 1px solid var(--border);
+    border-radius: 32px; padding: 8px 18px; z-index: 100;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
   }
 
   .nav button {
-    background: none;
-    border: 1px solid rgba(255,255,255,0.2);
-    color: var(--text);
-    padding: 6px 18px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
+    background: none; border: 1px solid var(--border); color: var(--text);
+    padding: 5px 16px; border-radius: 20px; cursor: pointer; font-size: 13px;
+    font-family: inherit; font-weight: 500; transition: all 0.2s;
   }
+  .nav button:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
 
-  .nav button:hover { background: var(--primary); border-color: var(--primary); }
+  .page-info { font-size: 12px; color: var(--muted); min-width: 60px; text-align: center; font-weight: 500; }
 
-  .page-info {
-    font-size: 13px;
-    color: var(--muted);
-    min-width: 70px;
-    text-align: center;
-  }
+  .dots { display: flex; gap: 5px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); cursor: pointer; transition: background 0.2s; }
+  .dot.active { background: var(--primary); }
 
-  .dots {
-    display: flex;
-    gap: 6px;
-  }
-
-  .dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--muted);
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .dot.active { background: var(--accent); }
-
-  /* ─── KEYBOARD HINT ─── */
-  .key-hint {
-    position: fixed;
-    bottom: 80px;
-    right: 30px;
-    font-size: 11px;
-    color: var(--muted);
-    opacity: 0.5;
-  }
+  .key-hint { position: fixed; bottom: 72px; right: 28px; font-size: 11px; color: var(--muted); opacity: 0.5; }
 
   /* ─── SLIDE HEADER ─── */
-  .slide-header {
-    margin-bottom: 28px;
-  }
-
+  .slide-header { margin-bottom: 24px; }
   .slide-tag {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    color: var(--accent);
-    text-transform: uppercase;
-    margin-bottom: 8px;
+    font-size: 11px; font-weight: 600; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--primary); margin-bottom: 6px;
   }
+  h1 { font-size: 40px; font-weight: 800; line-height: 1.15; letter-spacing: -1px; }
+  h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  h3 { font-size: 16px; font-weight: 600; }
 
-  h1 { font-size: 42px; font-weight: 700; line-height: 1.2; }
-  h2 { font-size: 28px; font-weight: 700; }
-  h3 { font-size: 17px; font-weight: 600; }
-
-  /* ─── GRID HELPERS ─── */
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  /* ─── GRID ─── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
 
   /* ─── CARD ─── */
   .card {
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px;
-    padding: 20px 22px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 20px;
+    box-shadow: var(--shadow);
   }
-
-  .card-accent { border-left: 3px solid var(--accent); }
-  .card-primary { border-left: 3px solid var(--primary); }
-  .card-fail    { border-left: 3px solid var(--fail); }
-  .card-warn    { border-left: 3px solid var(--warn); }
+  .card-accent  { border-top: 3px solid var(--primary); }
+  .card-primary { border-top: 3px solid #5856d6; }
+  .card-fail    { border-top: 3px solid var(--fail); }
+  .card-warn    { border-top: 3px solid var(--warn); }
 
   /* ─── BADGE ─── */
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
-  }
-
-  .badge-pass { background: rgba(0,196,160,0.15); color: var(--pass); }
-  .badge-fail { background: rgba(255,90,90,0.15); color: var(--fail); }
-  .badge-warn { background: rgba(245,166,35,0.15); color: var(--warn); }
-  .badge-na   { background: rgba(122,143,168,0.15); color: var(--na); }
-  .badge-info { background: rgba(26,107,204,0.2); color: #7ab3f5; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge-pass { background: rgba(52,199,89,0.12);  color: #1a7f37; }
+  .badge-fail { background: rgba(255,59,48,0.10);  color: #c0392b; }
+  .badge-warn { background: rgba(255,149,0,0.12);  color: #9a5700; }
+  .badge-na   { background: rgba(142,142,147,0.12); color: var(--na); }
+  .badge-info { background: var(--blue-lt);         color: var(--primary); }
 
   /* ─── STAT BOX ─── */
   .stat-box {
-    text-align: center;
-    padding: 22px 16px;
-    background: var(--card);
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.07);
+    text-align: center; padding: 20px 14px;
+    background: var(--bg2); border-radius: 14px; border: 1px solid var(--border);
   }
-
-  .stat-num {
-    font-size: 36px;
-    font-weight: 800;
-    color: var(--accent);
-    line-height: 1;
-    margin-bottom: 6px;
-  }
-
-  .stat-label {
-    font-size: 12px;
-    color: var(--muted);
-  }
+  .stat-num   { font-size: 34px; font-weight: 800; color: var(--primary); line-height: 1; margin-bottom: 5px; letter-spacing: -1px; }
+  .stat-label { font-size: 11px; color: var(--muted); font-weight: 500; }
 
   /* ─── PIPELINE ─── */
-  .pipeline {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    width: 100%;
-  }
-
+  .pipeline { display: flex; align-items: center; gap: 0; width: 100%; }
   .pipeline-step {
-    flex: 1;
-    text-align: center;
-    padding: 14px 8px;
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 10px;
-    font-size: 12px;
-    position: relative;
+    flex: 1; text-align: center; padding: 12px 8px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; font-size: 12px; position: relative; font-weight: 500;
   }
-
-  .pipeline-step .step-icon { font-size: 22px; margin-bottom: 6px; display: block; }
+  .pipeline-step .step-icon { font-size: 20px; margin-bottom: 5px; display: block; }
   .pipeline-step .step-num {
-    position: absolute;
-    top: -8px; left: 50%;
-    transform: translateX(-50%);
-    background: var(--primary);
-    color: white;
-    font-size: 10px; font-weight: 700;
-    width: 18px; height: 18px;
-    border-radius: 50%;
+    position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    background: var(--primary); color: white; font-size: 10px; font-weight: 700;
+    width: 17px; height: 17px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
   }
-
-  .pipeline-arrow { color: var(--muted); font-size: 18px; flex-shrink: 0; padding: 0 6px; }
+  .pipeline-arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; padding: 0 5px; }
 
   /* ─── TABLE ─── */
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-
   th {
-    background: rgba(26,107,204,0.2);
-    color: var(--accent);
-    font-weight: 600;
-    text-align: left;
-    padding: 9px 12px;
-    font-size: 11px;
-    letter-spacing: 0.5px;
+    background: var(--blue-lt); color: var(--primary);
+    font-weight: 600; text-align: left; padding: 8px 12px;
+    font-size: 11px; letter-spacing: 0.5px;
   }
-
-  td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text); }
-  tr:hover td { background: rgba(255,255,255,0.03); }
+  td { padding: 7px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tr:hover td { background: var(--bg2); }
 
   /* ─── PROGRESS BAR ─── */
-  .progress-bar { height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; margin-top: 8px; }
-  .progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--primary), var(--accent)); }
+  .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 7px; }
+  .progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--primary), #5ac8fa); }
 
   /* ─── CODE BLOCK ─── */
   .code-block {
-    background: #0a1520;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-    padding: 16px 18px;
-    font-family: 'Consolas', 'Fira Code', monospace;
-    font-size: 12px;
-    color: #a8d8a8;
-    line-height: 1.7;
-    overflow: auto;
+    background: #1c1c1e; border-radius: 10px; padding: 14px 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px; color: #e5e5ea; line-height: 1.75; overflow: auto;
   }
-
-  .code-block .keyword { color: #7ab3f5; }
-  .code-block .string  { color: #f5a623; }
-  .code-block .comment { color: #4a6a8a; }
+  .code-block .keyword { color: #ff9f0a; }
+  .code-block .string  { color: #30d158; }
+  .code-block .comment { color: #636366; }
 
   /* ─── DIVIDER ─── */
-  .divider { height: 1px; background: rgba(255,255,255,0.08); margin: 16px 0; }
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
 
   /* ─── LIST ─── */
-  .check-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-  .check-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; }
-  .check-list li::before { content: '▸'; color: var(--accent); flex-shrink: 0; margin-top: 1px; }
+  .check-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .check-list li { display: flex; align-items: flex-start; gap: 9px; font-size: 14px; color: var(--muted); }
+  .check-list li::before { content: '▸'; color: var(--primary); flex-shrink: 0; margin-top: 1px; }
 
-  /* ─── SCROLLABLE CONTENT ─── */
-  .scroll-content { overflow-y: auto; flex: 1; padding-right: 6px; }
-  .scroll-content::-webkit-scrollbar { width: 4px; }
-  .scroll-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  /* ─── SCROLL ─── */
+  .scroll-content { overflow-y: auto; flex: 1; padding-right: 4px; }
+  .scroll-content::-webkit-scrollbar { width: 3px; }
+  .scroll-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
   /* validation group colors */
-  .group-basic { border-left: 3px solid var(--primary); }
-  .group-cell  { border-left: 3px solid var(--accent); }
-  .group-temp  { border-left: 3px solid #f5a623; }
-  .group-power { border-left: 3px solid #b06bcc; }
-  .group-adv   { border-left: 3px solid #ff7a7a; }
+  .group-basic { border-left: 3px solid #0071e3; }
+  .group-cell  { border-left: 3px solid #34c759; }
+  .group-temp  { border-left: 3px solid #ff9500; }
+  .group-power { border-left: 3px solid #bf5af2; }
+  .group-adv   { border-left: 3px solid #ff3b30; }
 
   /* fleet badges */
   .exception-fleet {
     font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
     padding: 3px 9px; border-radius: 8px; flex-shrink: 0; margin-top: 1px;
   }
-  .fleet-vwg  { background: rgba(30,144,255,0.15); color: #5aafff; }
-  .fleet-ray  { background: rgba(245,166,35,0.15); color: #f5a623; }
-  .fleet-bolt { background: rgba(90,255,90,0.12);  color: #5afa8a; }
+  .fleet-vwg  { background: var(--blue-lt);          color: var(--primary); }
+  .fleet-ray  { background: rgba(255,149,0,0.12);    color: #9a5700; }
+  .fleet-bolt { background: rgba(52,199,89,0.12);    color: #1a7f37; }
 
-  /* HTML report mock */
+  /* report row mock */
   .report-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 7px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    margin-bottom: 4px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.05);
+    display: flex; align-items: center; gap: 10px; padding: 6px 12px;
+    border-radius: 8px; font-size: 12px; margin-bottom: 4px;
+    background: var(--bg2); border: 1px solid var(--border);
   }
   .report-row .rid  { min-width: 38px; font-weight: 700; color: var(--muted); font-size: 11px; }
   .report-row .rcol { flex: 1; color: var(--text); }
@@ -306,82 +196,71 @@
   .report-row .rsts { min-width: 60px; text-align: center; }
   .report-row .rcnt { min-width: 40px; text-align: right; color: var(--muted); font-size: 11px; }
 
-  /* ─── SLIDE 1: TITLE ─── */
-  #slide-1 {
-    background: radial-gradient(ellipse at 20% 50%, rgba(26,107,204,0.15), transparent 60%),
-                radial-gradient(ellipse at 80% 20%, rgba(0,196,160,0.1), transparent 50%),
-                var(--bg);
-    justify-content: center;
-  }
-
-  .title-eyebrow {
-    font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
-    color: var(--accent); margin-bottom: 20px;
-  }
-
-  .title-main {
-    font-size: 48px; font-weight: 900; line-height: 1.1; margin-bottom: 14px;
-    background: linear-gradient(135deg, #ffffff, #7ab3f5, var(--accent));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  }
-
-  .title-subtitle { font-size: 18px; color: var(--muted); margin-bottom: 32px; max-width: 680px; line-height: 1.6; }
-
-  .title-meta {
-    font-size: 13px; color: var(--muted);
-    border-top: 1px solid rgba(255,255,255,0.08);
-    padding-top: 20px;
-    display: flex; gap: 32px;
-  }
-
-  .title-meta span strong { color: var(--text); }
-
-  /* ─── SECTION SLIDE ─── */
-  .section-slide { justify-content: center; align-items: flex-start; background: linear-gradient(135deg, rgba(26,107,204,0.08), transparent); }
-
-  /* ── VALIDATION TAB (Slide 5) ── */
-  .val-tab {
-    padding: 5px 16px; border-radius: 20px; font-size: 12px; cursor: pointer;
-    background: none; border: 1px solid rgba(255,255,255,0.15); color: var(--muted);
-    transition: all 0.2s;
-  }
-  .val-tab.active  { background: var(--primary); border-color: var(--primary); color: #fff; }
-  .val-tab:hover:not(.active) { border-color: rgba(255,255,255,0.3); color: var(--text); }
-
-  /* ── CASCADE (컬럼별 분류) ── */
-  .cascade-wrap { display: flex; flex-direction: column; gap: 7px; overflow-y: auto; flex: 1; }
-  details.cg { background: var(--card); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; overflow: hidden; }
-  details.cg[open] { border-color: rgba(0,196,160,0.25); }
+  /* cascade */
+  .cascade-wrap { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex: 1; }
+  details.cg { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  details.cg[open] { border-color: rgba(0,113,227,0.3); }
   details.cg summary {
-    list-style: none; padding: 10px 14px; cursor: pointer; display: flex;
+    list-style: none; padding: 9px 14px; cursor: pointer; display: flex;
     align-items: center; gap: 10px; user-select: none; font-size: 13px;
   }
   details.cg summary::-webkit-details-marker { display: none; }
   details.cg summary .cg-arrow { font-size: 10px; color: var(--muted); transition: transform 0.2s; }
   details.cg[open] summary .cg-arrow { transform: rotate(90deg); }
-  details.cg summary .cg-icon { font-size: 16px; }
+  details.cg summary .cg-icon  { font-size: 15px; }
   details.cg summary .cg-title { font-weight: 700; flex: 1; }
-  details.cg summary .cg-cols { font-size: 11px; color: var(--muted); }
-  details.cg summary .cg-cnt { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,0.07); color: var(--muted); }
-  .cg-items { padding: 0 14px 12px 40px; display: flex; flex-direction: column; gap: 4px; }
-  .cg-item { font-size: 12px; color: var(--muted); padding: 4px 8px; border-radius: 6px; display: flex; gap: 8px; }
-  .cg-item:hover { background: rgba(255,255,255,0.04); }
-  .cg-item .ci-col { color: var(--text); min-width: 180px; font-family: monospace; font-size: 11px; }
+  details.cg summary .cg-cols  { font-size: 11px; color: var(--muted); }
+  details.cg summary .cg-cnt   { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--border); color: var(--muted); }
+  .cg-items { padding: 0 14px 10px 40px; display: flex; flex-direction: column; gap: 3px; }
+  .cg-item  { font-size: 12px; color: var(--muted); padding: 4px 8px; border-radius: 6px; display: flex; gap: 8px; }
+  .cg-item:hover { background: var(--border); }
+  .cg-item .ci-col  { color: var(--text); min-width: 180px; font-family: monospace; font-size: 11px; }
   .cg-item .ci-desc { flex: 1; }
-  .cg-item .ci-id { font-size: 10px; color: var(--accent); opacity: 0.7; min-width: 46px; text-align: right; }
+  .cg-item .ci-id   { font-size: 10px; color: var(--primary); opacity: 0.8; min-width: 46px; text-align: right; }
+
+  /* val tabs */
+  .val-tab {
+    padding: 4px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; font-family: inherit; font-weight: 500;
+    background: none; border: 1px solid var(--border); color: var(--muted); transition: all 0.2s;
+  }
+  .val-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .val-tab:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+
+  /* ─── SLIDE 1 ─── */
+  #slide-1 {
+    background: linear-gradient(150deg, #f0f6ff 0%, #ffffff 50%, #f5f5f7 100%);
+    justify-content: center;
+  }
+  .title-eyebrow {
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--primary); margin-bottom: 18px; font-weight: 600;
+    display: inline-block; background: var(--blue-lt); padding: 4px 14px; border-radius: 20px;
+  }
+  .title-main {
+    font-size: 52px; font-weight: 900; line-height: 1.08; margin-bottom: 16px;
+    letter-spacing: -2px; color: var(--text);
+  }
+  .title-main span { color: var(--primary); }
+  .title-subtitle { font-size: 17px; color: var(--muted); margin-bottom: 32px; max-width: 640px; line-height: 1.65; }
+  .title-meta {
+    font-size: 13px; color: var(--muted);
+    border-top: 1px solid var(--border); padding-top: 18px;
+    display: flex; gap: 28px;
+  }
+  .title-meta span strong { color: var(--text); }
+
+  .section-slide { justify-content: center; align-items: flex-start; background: linear-gradient(135deg, var(--blue-lt), #fff); }
 </style>
 </head>
 <body>
 
 <div class="slide-container">
 
-  <!-- ═══════════════════════════════════════════════
-       SLIDE 1 · TITLE
-  ═══════════════════════════════════════════════ -->
+  <!-- SLIDE 1 · TITLE -->
   <div class="slide active" id="slide-1">
-    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; max-width:820px;">
-      <div class="title-eyebrow">DART Data Assurance &amp; Reliability Tracker</div>
-      <div class="title-main">BMS 데이터<br>품질 검증 자동화</div>
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; max-width:800px;">
+      <div class="title-eyebrow">DART · Data Assurance &amp; Reliability Tracker</div>
+      <div class="title-main">BMS 데이터<br><span>품질 검증</span> 자동화</div>
       <div class="title-subtitle">
         전기차 배터리 데이터(BMS)를 AWS S3에서 자동으로 취득한 뒤,<br>
         35개 항목 · 71개 조건으로 데이터 품질을 검증하고 결과 리포트를 생성합니다.
@@ -392,27 +271,20 @@
         <span><strong>처리 규모</strong><br>최대 100대 배치 · 317개 모델 자동 매칭</span>
       </div>
     </div>
-
-    <div style="position:absolute; right:60px; top:50%; transform:translateY(-50%); opacity:0.10; font-size:220px; line-height:1; pointer-events:none; user-select:none;">
-      🔋
-    </div>
+    <div style="position:absolute; right:56px; top:50%; transform:translateY(-50%); opacity:0.06; font-size:200px; line-height:1; pointer-events:none; user-select:none;">🔋</div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-       SLIDE 2 · PROJECT OVERVIEW
-  ═══════════════════════════════════════════════ -->
+  <!-- SLIDE 2 · PROJECT OVERVIEW -->
   <div class="slide" id="slide-2">
     <div class="slide-header">
       <div class="slide-tag">Project Overview</div>
       <h2>프로젝트 개요</h2>
     </div>
 
-    <div class="grid-3" style="flex:1; align-items:start; gap:18px;">
-
-      <!-- 서비스 배경 -->
+    <div class="grid-3" style="flex:1; align-items:start; gap:16px;">
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div class="card card-accent" style="flex:1;">
-          <div style="font-size:11px; letter-spacing:1px; color:var(--accent); margin-bottom:12px;">서비스 배경</div>
+          <div style="font-size:11px; letter-spacing:1px; color:var(--primary); margin-bottom:10px; font-weight:600;">서비스 배경</div>
           <ul class="check-list">
             <li>Fleet 서비스 자동화 구축 필요</li>
             <li>규칙 기반 데이터 정합성 검증·검사 효율화 요구</li>
@@ -420,120 +292,106 @@
           </ul>
         </div>
         <div class="stat-box">
-          <div class="stat-num" style="font-size:28px; color:#7ab3f5;">자동화</div>
+          <div class="stat-num" style="font-size:22px;">자동화</div>
           <div class="stat-label">다운로드→검증→리포트<br>전과정 원클릭으로 처리</div>
         </div>
       </div>
 
-      <!-- 지원 차량 / Fleet -->
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div class="card card-primary">
-          <div style="font-size:11px; letter-spacing:1px; color:#7ab3f5; margin-bottom:12px;">지원 차량 · Fleet</div>
-          <div style="display:flex; flex-direction:column; gap:7px; font-size:13px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(90,175,255,0.07); border-radius:7px;">
-              <span style="color:#5aafff; font-weight:600;">VWGKALRT</span>
+          <div style="font-size:11px; letter-spacing:1px; color:#5856d6; margin-bottom:10px; font-weight:600;">지원 차량 · Fleet</div>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 10px; background:var(--blue-lt); border-radius:7px;">
+              <span style="color:var(--primary); font-weight:600;">VWGKALRT</span>
               <span style="color:var(--muted); font-size:11px;">VW Audi Q4 · VW ID.4 · ID.5</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(0,196,160,0.07); border-radius:7px;">
-              <span style="color:var(--accent); font-weight:600;">HKMC</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 10px; background:rgba(52,199,89,0.08); border-radius:7px;">
+              <span style="color:#1a7f37; font-weight:600;">HKMC</span>
               <span style="color:var(--muted); font-size:11px;">IONIQ9 · EV9 등</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(176,107,204,0.07); border-radius:7px;">
-              <span style="color:#c07aee; font-weight:600;">GM</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 10px; background:rgba(191,90,242,0.08); border-radius:7px;">
+              <span style="color:#7f3fbf; font-weight:600;">GM</span>
               <span style="color:var(--muted); font-size:11px;">Bolt 등</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(255,90,90,0.07); border-radius:7px;">
-              <span style="color:#ff7a7a; font-weight:600;">Tesla</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 10px; background:rgba(255,59,48,0.07); border-radius:7px;">
+              <span style="color:#c0392b; font-weight:600;">Tesla</span>
               <span style="color:var(--muted); font-size:11px;">Model 3 · Model Y 등</span>
             </div>
           </div>
-          <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06); font-size:12px; color:var(--muted);">
+          <div style="margin-top:9px; padding-top:9px; border-top:1px solid var(--border); font-size:12px; color:var(--muted);">
             vehicle_master.json — <strong style="color:var(--text);">317개</strong> 모델 자동 매칭
           </div>
         </div>
       </div>
 
-      <!-- 주요 지표 -->
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div class="card">
-          <div style="font-size:11px; letter-spacing:1px; color:var(--accent); margin-bottom:12px;">검증 커버리지</div>
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            <div style="padding:10px 12px; background:rgba(0,196,160,0.06); border-radius:8px; text-align:center;">
-              <div style="font-size:30px; font-weight:800; color:var(--accent);">35</div>
+          <div style="font-size:11px; letter-spacing:1px; color:var(--primary); margin-bottom:10px; font-weight:600;">검증 커버리지</div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="padding:9px 12px; background:rgba(0,113,227,0.06); border-radius:8px; text-align:center;">
+              <div style="font-size:28px; font-weight:800; color:var(--primary);">35</div>
               <div style="font-size:11px; color:var(--muted);">BMS 검증 항목</div>
             </div>
-            <div style="padding:10px 12px; background:rgba(26,107,204,0.08); border-radius:8px; text-align:center;">
-              <div style="font-size:30px; font-weight:800; color:#7ab3f5;">71</div>
+            <div style="padding:9px 12px; background:rgba(88,86,214,0.06); border-radius:8px; text-align:center;">
+              <div style="font-size:28px; font-weight:800; color:#5856d6;">71</div>
               <div style="font-size:11px; color:var(--muted);">세부 검사 조건</div>
             </div>
-            <div style="padding:10px 12px; background:rgba(176,107,204,0.07); border-radius:8px; text-align:center;">
-              <div style="font-size:30px; font-weight:800; color:#c07aee;">100+</div>
+            <div style="padding:9px 12px; background:rgba(191,90,242,0.06); border-radius:8px; text-align:center;">
+              <div style="font-size:28px; font-weight:800; color:#7f3fbf;">100+</div>
               <div style="font-size:11px; color:var(--muted);">배치 처리 대수</div>
             </div>
           </div>
         </div>
-        <div class="card card-warn" style="padding:14px 16px;">
-          <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">결과 상태</div>
-          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <div class="card card-warn" style="padding:13px 16px;">
+          <div style="font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:500;">결과 상태</div>
+          <div style="display:flex; gap:5px; flex-wrap:wrap;">
             <span class="badge badge-pass">PASS</span>
             <span class="badge badge-fail">FAIL</span>
             <span class="badge badge-warn">WARNING</span>
             <span class="badge badge-na">N/A</span>
           </div>
-          <div style="font-size:11px; color:var(--muted); margin-top:8px;">FAIL 항목마다 첫 오류 샘플(row index, 값) 자동 첨부</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:7px;">FAIL 항목마다 첫 오류 샘플(row index, 값) 자동 첨부</div>
         </div>
       </div>
-
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-       SLIDE 3 · VEHICLE & FLEET
-  ═══════════════════════════════════════════════ -->
+  <!-- SLIDE 3 · VEHICLE & FLEET -->
   <div class="slide" id="slide-3">
     <div class="slide-header">
       <div class="slide-tag">Vehicle Master</div>
       <h2>차량 정보 매칭 · Fleet 구성</h2>
     </div>
 
-    <div class="grid-2" style="flex:1; gap:20px;">
-      <!-- left: 3-step matching -->
-      <div style="display:flex; flex-direction:column; gap:14px;">
+    <div class="grid-2" style="flex:1; gap:18px;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
         <div class="card card-accent">
-          <h3 style="font-size:14px; margin-bottom:12px;">3단계 차량 모델 매칭</h3>
-          <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
-            <div style="padding:10px 12px; background:rgba(0,196,160,0.08); border-radius:8px; display:flex; gap:10px; align-items:center;">
-              <span style="font-size:18px; font-weight:800; color:var(--accent);">①</span>
-              <div>
-                <div style="font-weight:600;">model_name + model_year + model_trim</div>
-                <div style="font-size:11px; color:var(--muted);">가장 세밀한 매칭 (3개 키 모두 일치)</div>
-              </div>
+          <h3 style="font-size:14px; margin-bottom:10px;">3단계 차량 모델 매칭</h3>
+          <div style="display:flex; flex-direction:column; gap:7px; font-size:13px;">
+            <div style="padding:9px 12px; background:rgba(0,113,227,0.06); border-radius:8px; display:flex; gap:10px; align-items:center;">
+              <span style="font-size:17px; font-weight:800; color:var(--primary);">①</span>
+              <div><div style="font-weight:600;">model_name + model_year + model_trim</div>
+              <div style="font-size:11px; color:var(--muted);">가장 세밀한 매칭 (3개 키 모두 일치)</div></div>
             </div>
-            <div style="padding:10px 12px; background:rgba(26,107,204,0.08); border-radius:8px; display:flex; gap:10px; align-items:center;">
-              <span style="font-size:18px; font-weight:800; color:#7ab3f5;">②</span>
-              <div>
-                <div style="font-weight:600;">model_name + model_year</div>
-                <div style="font-size:11px; color:var(--muted);">trim 무시, year로 구분</div>
-              </div>
+            <div style="padding:9px 12px; background:rgba(88,86,214,0.06); border-radius:8px; display:flex; gap:10px; align-items:center;">
+              <span style="font-size:17px; font-weight:800; color:#5856d6;">②</span>
+              <div><div style="font-weight:600;">model_name + model_year</div>
+              <div style="font-size:11px; color:var(--muted);">trim 무시, year로 구분</div></div>
             </div>
-            <div style="padding:10px 12px; background:rgba(245,166,35,0.06); border-radius:8px; display:flex; gap:10px; align-items:center;">
-              <span style="font-size:18px; font-weight:800; color:var(--warn);">③</span>
-              <div>
-                <div style="font-weight:600;">model_name 단독</div>
-                <div style="font-size:11px; color:var(--muted);">최후 매칭, WARNING 로그 출력</div>
-              </div>
+            <div style="padding:9px 12px; background:rgba(255,149,0,0.07); border-radius:8px; display:flex; gap:10px; align-items:center;">
+              <span style="font-size:17px; font-weight:800; color:var(--warn);">③</span>
+              <div><div style="font-weight:600;">model_name 단독</div>
+              <div style="font-size:11px; color:var(--muted);">최후 매칭, WARNING 로그 출력</div></div>
             </div>
           </div>
-          <div style="margin-top:12px; padding:10px 12px; background:rgba(255,255,255,0.04); border-radius:8px; font-size:12px; color:var(--muted);">
-            매칭 결과에서 <strong style="color:var(--text);">cell_count</strong>(serial_conn_cnt) ·
-            <strong style="color:var(--text);">module_count</strong>(module_temp_cnt) 추출<br>
+          <div style="margin-top:10px; padding:9px 12px; background:var(--bg2); border-radius:8px; font-size:12px; color:var(--muted);">
+            매칭 결과에서 <strong style="color:var(--text);">cell_count</strong> · <strong style="color:var(--text);">module_count</strong> 추출<br>
             → 셀 전압 / 모듈 온도 동적 범위 검증에 활용
           </div>
         </div>
-
-        <div class="card" style="padding:14px 16px;">
-          <div style="font-size:11px; color:var(--accent); margin-bottom:10px;">S3 데이터 경로 폴백</div>
-          <div class="code-block" style="font-size:11px; padding:10px 12px;">
+        <div class="card" style="padding:13px 16px;">
+          <div style="font-size:11px; color:var(--primary); margin-bottom:8px; font-weight:600;">S3 데이터 경로 폴백</div>
+          <div class="code-block" style="font-size:11px; padding:9px 12px;">
 <span class="comment"># 1차 시도</span>
 BCP/MACRIOT/{pid}/...
 <span class="comment"># 없으면 폴백</span>
@@ -542,49 +400,23 @@ BCP/LGES/{pid}/...
         </div>
       </div>
 
-      <!-- right: fleet table + sample -->
-      <div style="display:flex; flex-direction:column; gap:14px;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
         <div class="card">
-          <div style="font-size:11px; color:var(--accent); margin-bottom:10px;">Fleet별 지원 현황</div>
+          <div style="font-size:11px; color:var(--primary); margin-bottom:9px; font-weight:600;">Fleet별 지원 현황</div>
           <table>
-            <thead>
-              <tr><th>Fleet</th><th>대표 차량</th><th>셀 수</th><th>모듈 수</th></tr>
-            </thead>
+            <thead><tr><th>Fleet</th><th>대표 차량</th><th>셀 수</th><th>모듈 수</th></tr></thead>
             <tbody>
-              <tr>
-                <td><span style="color:#5aafff; font-weight:600;">VWGKALRT</span></td>
-                <td>VW Audi Q4, VW ID.4, ID.5</td>
-                <td>84 / 96</td>
-                <td>12 / 24</td>
-              </tr>
-              <tr>
-                <td><span style="color:var(--accent); font-weight:600;">HKMC</span></td>
-                <td>IONIQ9, EV9 등</td>
-                <td>192</td>
-                <td>—</td>
-              </tr>
-              <tr>
-                <td><span style="color:#c07aee; font-weight:600;">GM</span></td>
-                <td>Bolt 등</td>
-                <td>—</td>
-                <td>—</td>
-              </tr>
-              <tr>
-                <td><span style="color:#ff7a7a; font-weight:600;">Tesla</span></td>
-                <td>Model 3, Model Y 등</td>
-                <td>—</td>
-                <td>—</td>
-              </tr>
+              <tr><td><span style="color:var(--primary); font-weight:600;">VWGKALRT</span></td><td>VW Audi Q4, VW ID.4, ID.5</td><td>84 / 96</td><td>12 / 24</td></tr>
+              <tr><td><span style="color:#1a7f37; font-weight:600;">HKMC</span></td><td>IONIQ9, EV9 등</td><td>192</td><td>—</td></tr>
+              <tr><td><span style="color:#7f3fbf; font-weight:600;">GM</span></td><td>Bolt 등</td><td>—</td><td>—</td></tr>
+              <tr><td><span style="color:#c0392b; font-weight:600;">Tesla</span></td><td>Model 3, Model Y 등</td><td>—</td><td>—</td></tr>
             </tbody>
           </table>
         </div>
-
         <div class="card">
-          <div style="font-size:11px; color:var(--accent); margin-bottom:10px;">테스트 데이터 샘플</div>
+          <div style="font-size:11px; color:var(--primary); margin-bottom:9px; font-weight:600;">테스트 데이터 샘플</div>
           <table>
-            <thead>
-              <tr><th>PID</th><th>Fleet</th><th>차종</th><th>행수</th></tr>
-            </thead>
+            <thead><tr><th>PID</th><th>Fleet</th><th>차종</th><th>행수</th></tr></thead>
             <tbody>
               <tr><td>2833</td><td>VWGKALRT</td><td>Audi Q4 (2025)</td><td>18,401</td></tr>
               <tr><td>55786</td><td>LGES</td><td>Kia Ray (2024)</td><td>15,941</td></tr>
@@ -596,63 +428,34 @@ BCP/LGES/{pid}/...
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-       SLIDE 4 · DATA PIPELINE
-  ═══════════════════════════════════════════════ -->
+  <!-- SLIDE 4 · DATA PIPELINE -->
   <div class="slide" id="slide-4">
     <div class="slide-header">
       <div class="slide-tag">Data Pipeline</div>
       <h2>데이터 처리 파이프라인</h2>
     </div>
 
-    <!-- step pipeline -->
-    <div class="pipeline" style="margin-bottom:22px;">
-      <div class="pipeline-step">
-        <div class="step-num">1</div>
-        <span class="step-icon">☁️</span>
-        <strong>S3 다운로드</strong><br>
-        <span style="color:var(--muted); font-size:11px;">Parquet / CSV</span>
-      </div>
+    <div class="pipeline" style="margin-bottom:20px;">
+      <div class="pipeline-step"><div class="step-num">1</div><span class="step-icon">☁️</span><strong>S3 다운로드</strong><br><span style="color:var(--muted); font-size:11px;">Parquet / CSV</span></div>
       <div class="pipeline-arrow">→</div>
-      <div class="pipeline-step">
-        <div class="step-num">2</div>
-        <span class="step-icon">🗂</span>
-        <strong>메타데이터 로드</strong><br>
-        <span style="color:var(--muted); font-size:11px;">vehicle_master.json</span>
-      </div>
+      <div class="pipeline-step"><div class="step-num">2</div><span class="step-icon">🗂</span><strong>메타데이터 로드</strong><br><span style="color:var(--muted); font-size:11px;">vehicle_master.json</span></div>
       <div class="pipeline-arrow">→</div>
-      <div class="pipeline-step">
-        <div class="step-num">3</div>
-        <span class="step-icon">🚗</span>
-        <strong>차량 정보 추출</strong><br>
-        <span style="color:var(--muted); font-size:11px;">3단계 모델 매칭</span>
-      </div>
+      <div class="pipeline-step"><div class="step-num">3</div><span class="step-icon">🚗</span><strong>차량 정보 추출</strong><br><span style="color:var(--muted); font-size:11px;">3단계 모델 매칭</span></div>
       <div class="pipeline-arrow">→</div>
-      <div class="pipeline-step">
-        <div class="step-num">4</div>
-        <span class="step-icon">✅</span>
-        <strong>BMS 검증</strong><br>
-        <span style="color:var(--muted); font-size:11px;">35 items · 71 checks</span>
-      </div>
+      <div class="pipeline-step"><div class="step-num">4</div><span class="step-icon">✅</span><strong>BMS 검증</strong><br><span style="color:var(--muted); font-size:11px;">35 items · 71 checks</span></div>
       <div class="pipeline-arrow">→</div>
-      <div class="pipeline-step">
-        <div class="step-num">5</div>
-        <span class="step-icon">📊</span>
-        <strong>리포트 생성</strong><br>
-        <span style="color:var(--muted); font-size:11px;">XLSX · HTML</span>
-      </div>
+      <div class="pipeline-step"><div class="step-num">5</div><span class="step-icon">📊</span><strong>리포트 생성</strong><br><span style="color:var(--muted); font-size:11px;">XLSX · HTML</span></div>
     </div>
 
-    <!-- detail cards -->
     <div class="grid-2" style="flex:1; gap:14px;">
       <div style="display:flex; flex-direction:column; gap:10px;">
         <div class="card card-primary">
-          <h3 style="margin-bottom:8px; font-size:14px;">STEP 4 · 데이터 구간 자동 선별</h3>
-          <div style="font-size:12px; color:var(--muted); line-height:1.9;">
-            시동(IGN) OFF 후 <span style="color:var(--accent);">충전·슬립 대기</span> 중 수집된 데이터만 선별해 검증<br>
+          <h3 style="margin-bottom:7px; font-size:14px;">STEP 4 · 데이터 구간 자동 선별</h3>
+          <div style="font-size:12px; color:var(--muted); line-height:1.85;">
+            시동(IGN) OFF 후 <span style="color:var(--primary); font-weight:600;">충전·슬립 대기</span> 중 수집된 데이터만 선별해 검증<br>
             <span style="color:var(--na);">주행 중 데이터는 자동 제외</span> — 오탐 방지
           </div>
-          <div style="font-size:11px; color:var(--muted); margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:11px; color:var(--muted); margin-top:7px; padding-top:7px; border-top:1px solid var(--border);">
             적용 항목: 셀전압(16) · 온도평균(19) · 모듈온도(20)
           </div>
         </div>
@@ -661,16 +464,16 @@ BCP/LGES/{pid}/...
           <h3 style="margin-bottom:8px; font-size:14px;">입력 / 출력 형식</h3>
           <div style="display:flex; gap:12px; font-size:12px;">
             <div style="flex:1;">
-              <div style="color:var(--muted); margin-bottom:6px;">입력</div>
+              <div style="color:var(--muted); margin-bottom:5px; font-weight:500;">입력</div>
               <div style="display:flex; flex-direction:column; gap:4px;">
                 <span class="badge badge-info">Parquet (.parquet)</span>
                 <span class="badge badge-info">CSV (.csv)</span>
               </div>
             </div>
             <div style="flex:1;">
-              <div style="color:var(--muted); margin-bottom:6px;">출력</div>
+              <div style="color:var(--muted); margin-bottom:5px; font-weight:500;">출력</div>
               <div style="display:flex; flex-direction:column; gap:4px;">
-                <span class="badge badge-pass">XLSX (색상 코딩)</span>
+                <span class="badge badge-pass">XLSX (조건부 서식)</span>
                 <span class="badge badge-warn">HTML 리포트 (신규)</span>
               </div>
             </div>
@@ -680,7 +483,7 @@ BCP/LGES/{pid}/...
 
       <div style="display:flex; flex-direction:column; gap:10px;">
         <div class="card">
-          <h3 style="margin-bottom:10px; font-size:14px;">STEP 6 · 리포트 출력 컬럼</h3>
+          <h3 style="margin-bottom:9px; font-size:14px;">STEP 6 · 리포트 출력 컬럼</h3>
           <table>
             <thead><tr><th>컬럼</th><th>예시</th></tr></thead>
             <tbody>
@@ -695,40 +498,35 @@ BCP/LGES/{pid}/...
           </table>
         </div>
 
-        <div class="card card-accent" style="padding:14px 16px;">
-          <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">통합 리포트 (다중 PID)</div>
-          <div style="font-size:12px; color:var(--muted); line-height:1.8;">
-            <span style="color:var(--accent);">Sheet 1</span> — 요약: PID × 날짜 매트릭스<br>
-            <span style="color:var(--accent);">Sheet 2+</span> — PID별 FAIL 항목 + 원본 데이터 링크
+        <div class="card card-accent" style="padding:13px 16px;">
+          <div style="font-size:12px; color:var(--muted); margin-bottom:7px; font-weight:500;">통합 리포트 (다중 PID)</div>
+          <div style="font-size:12px; color:var(--muted); line-height:1.85;">
+            <span style="color:var(--primary); font-weight:600;">Sheet 1</span> — 요약: PID × 날짜 매트릭스<br>
+            <span style="color:var(--primary); font-weight:600;">Sheet 2+</span> — PID별 FAIL 항목 + 원본 데이터 링크
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-       SLIDE 5 · 35 VALIDATION ITEMS
-  ═══════════════════════════════════════════════ -->
+  <!-- SLIDE 5 · 35 VALIDATION ITEMS -->
   <div class="slide" id="slide-5">
     <div class="slide-header">
       <div class="slide-tag">Validation Rules</div>
       <h2>35개 BMS 검증 항목 (검증 규칙)</h2>
     </div>
 
-    <!-- tab bar -->
     <div style="display:flex; gap:8px; margin-bottom:10px; align-items:center;">
       <button class="val-tab active" id="vtab-group"  onclick="switchValTab('group',this)">그룹별 A–E</button>
       <button class="val-tab"        id="vtab-column" onclick="switchValTab('column',this)">컬럼별 분류</button>
       <span style="font-size:11px; color:var(--muted); margin-left:6px;">※ 클릭으로 항목 펼치기/닫기</span>
     </div>
 
-    <!-- ── PANEL 1: GROUP VIEW (A–E) ── -->
-    <div id="val-group" style="flex:1; display:flex; gap:16px; min-height:0;">
-      <!-- left -->
-      <div class="scroll-content" style="flex:1; display:flex; flex-direction:column; gap:8px;">
-        <div class="card group-basic" style="padding:12px 14px;">
-          <div style="font-size:10px; letter-spacing:1px; color:#7ab3f5; margin-bottom:6px;">GROUP A · 기본 상태 (항목 1–10)</div>
-          <div style="font-size:12px; line-height:2; color:var(--muted);">
+    <div id="val-group" style="flex:1; display:flex; gap:14px; min-height:0;">
+      <div class="scroll-content" style="flex:1; display:flex; flex-direction:column; gap:7px;">
+        <div class="card group-basic" style="padding:11px 14px;">
+          <div style="font-size:10px; letter-spacing:1px; color:var(--primary); margin-bottom:5px; font-weight:600; text-transform:uppercase;">GROUP A · 기본 상태 (항목 1–10)</div>
+          <div style="font-size:12px; line-height:1.95; color:var(--muted);">
             <span style="color:var(--text);">unix_time</span> — 수집 주기(3s~60s) · NULL 검사<br>
             <span style="color:var(--text);">ignit_status</span> — 주기 · NULL · 값(0/1)<br>
             <span style="color:var(--text);">chg_conr_status_list</span> — 충전 커넥터 상태<br>
@@ -739,29 +537,28 @@ BCP/LGES/{pid}/...
             <span style="color:var(--text);">mile_km</span> — 주행거리 선형 증가
           </div>
         </div>
-        <div class="card group-cell" style="padding:12px 14px;">
-          <div style="font-size:10px; letter-spacing:1px; color:var(--accent); margin-bottom:6px;">GROUP B · 셀 전압 (항목 11–16)</div>
-          <div style="font-size:12px; line-height:2; color:var(--muted);">
+        <div class="card group-cell" style="padding:11px 14px;">
+          <div style="font-size:10px; letter-spacing:1px; color:#1a7f37; margin-bottom:5px; font-weight:600; text-transform:uppercase;">GROUP B · 셀 전압 (항목 11–16)</div>
+          <div style="font-size:12px; line-height:1.95; color:var(--muted);">
             <span style="color:var(--text);">cell_min/max_volt</span> — 범위 2.6~4.5V<br>
             <span style="color:var(--text);">cell_volt_dev</span> — max − min 편차 계산<br>
             <span style="color:var(--text);">cell_min/max_volt_no</span> — 번호 ≤ cell_count(N)<br>
             <span style="color:var(--text);">cell_voltage_1~N</span> — 수집 구간 마스크 + 주기
           </div>
         </div>
-        <div class="card group-temp" style="padding:12px 14px;">
-          <div style="font-size:10px; letter-spacing:1px; color:var(--warn); margin-bottom:6px;">GROUP C · 모듈 온도 (항목 17–20)</div>
-          <div style="font-size:12px; line-height:2; color:var(--muted);">
+        <div class="card group-temp" style="padding:11px 14px;">
+          <div style="font-size:10px; letter-spacing:1px; color:#9a5700; margin-bottom:5px; font-weight:600; text-transform:uppercase;">GROUP C · 모듈 온도 (항목 17–20)</div>
+          <div style="font-size:12px; line-height:1.95; color:var(--muted);">
             <span style="color:var(--text);">module_min/max_temp</span> — 범위 −40~+85°C<br>
             <span style="color:var(--text);">module_avg_temp</span> — 수집 구간 마스크<br>
             <span style="color:var(--text);">battery_module_1~N</span> — 마스크 + ≤ module_count
           </div>
         </div>
       </div>
-      <!-- right -->
-      <div class="scroll-content" style="flex:1; display:flex; flex-direction:column; gap:8px;">
-        <div class="card group-power" style="padding:12px 14px;">
-          <div style="font-size:10px; letter-spacing:1px; color:#c07aee; margin-bottom:6px;">GROUP D · 에너지·전력 (항목 21–27)</div>
-          <div style="font-size:12px; line-height:2; color:var(--muted);">
+      <div class="scroll-content" style="flex:1; display:flex; flex-direction:column; gap:7px;">
+        <div class="card group-power" style="padding:11px 14px;">
+          <div style="font-size:10px; letter-spacing:1px; color:#7f3fbf; margin-bottom:5px; font-weight:600; text-transform:uppercase;">GROUP D · 에너지·전력 (항목 21–27)</div>
+          <div style="font-size:12px; line-height:1.95; color:var(--muted);">
             <span style="color:var(--text);">oper_second</span> — 선형 증가 ≤1초/샘플<br>
             <span style="color:var(--text);">acc_chg/dchg_ah</span> — 누적 충방전 전류량 ≥0<br>
             <span style="color:var(--text);">acc_chg/dchg_wh</span> — 누적 충방전 전력량 ≥0<br>
@@ -769,9 +566,9 @@ BCP/LGES/{pid}/...
             <span style="color:var(--text);">ir</span> — 내부저항 ≥ 0
           </div>
         </div>
-        <div class="card group-adv" style="padding:12px 14px;">
-          <div style="font-size:10px; letter-spacing:1px; color:#ff7a7a; margin-bottom:6px;">GROUP E · 복합 로직 (항목 28–35)</div>
-          <div style="font-size:12px; line-height:2; color:var(--muted);">
+        <div class="card group-adv" style="padding:11px 14px;">
+          <div style="font-size:10px; letter-spacing:1px; color:#c0392b; margin-bottom:5px; font-weight:600; text-transform:uppercase;">GROUP E · 복합 로직 (항목 28–35)</div>
+          <div style="font-size:12px; line-height:1.95; color:var(--muted);">
             <span style="color:var(--text);">충전 감지 시간</span> — 충전 시작 기준 −5s~+25s<br>
             <span style="color:var(--text);">시작/종료 상태</span> — (ignit,chg,relay) 유효 튜플 검증<br>
             <span style="color:var(--text);">슬립 지연 시간</span> — IGN=0 이후 슬립까지 측정<br>
@@ -781,53 +578,25 @@ BCP/LGES/{pid}/...
             <span style="color:var(--text);">충전 조건</span> — speed=0, relay=1, |curr|&gt;1
           </div>
         </div>
-        <!-- distribution bar -->
-        <div class="card" style="padding:14px 16px;">
-          <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">그룹별 검증 항목 분포 (총 35개)</div>
-          <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
-            <div><div style="display:flex; justify-content:space-between;"><span>기본 상태 (A)</span><span style="color:#7ab3f5;">10</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:28%; background:linear-gradient(90deg,#1a6bcc,#5aafff);"></div></div></div>
-            <div><div style="display:flex; justify-content:space-between;"><span>셀 전압 (B)</span><span style="color:var(--accent);">6</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:17%;"></div></div></div>
-            <div><div style="display:flex; justify-content:space-between;"><span>모듈 온도 (C)</span><span style="color:var(--warn);">4</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:11%; background:linear-gradient(90deg,#d4920a,#f5c842);"></div></div></div>
-            <div><div style="display:flex; justify-content:space-between;"><span>에너지·전력 (D)</span><span style="color:#c07aee;">7</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:20%; background:linear-gradient(90deg,#7a3a99,#c07aee);"></div></div></div>
-            <div><div style="display:flex; justify-content:space-between;"><span>복합 로직 (E)</span><span style="color:#ff7a7a;">8</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:22%; background:linear-gradient(90deg,#cc3030,#ff7a7a);"></div></div></div>
+        <div class="card" style="padding:13px 16px;">
+          <div style="font-size:12px; color:var(--muted); margin-bottom:9px;">그룹별 검증 항목 분포 (총 35개)</div>
+          <div style="display:flex; flex-direction:column; gap:5px; font-size:12px;">
+            <div><div style="display:flex; justify-content:space-between;"><span>기본 상태 (A)</span><span style="color:var(--primary);">10</span></div><div class="progress-bar"><div class="progress-fill" style="width:28%;"></div></div></div>
+            <div><div style="display:flex; justify-content:space-between;"><span>셀 전압 (B)</span><span style="color:#1a7f37;">6</span></div><div class="progress-bar"><div class="progress-fill" style="width:17%; background:linear-gradient(90deg,#1a7f37,#34c759);"></div></div></div>
+            <div><div style="display:flex; justify-content:space-between;"><span>모듈 온도 (C)</span><span style="color:#9a5700;">4</span></div><div class="progress-bar"><div class="progress-fill" style="width:11%; background:linear-gradient(90deg,#9a5700,#ff9500);"></div></div></div>
+            <div><div style="display:flex; justify-content:space-between;"><span>에너지·전력 (D)</span><span style="color:#7f3fbf;">7</span></div><div class="progress-bar"><div class="progress-fill" style="width:20%; background:linear-gradient(90deg,#7f3fbf,#bf5af2);"></div></div></div>
+            <div><div style="display:flex; justify-content:space-between;"><span>복합 로직 (E)</span><span style="color:#c0392b;">8</span></div><div class="progress-bar"><div class="progress-fill" style="width:22%; background:linear-gradient(90deg,#c0392b,#ff3b30);"></div></div></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── PANEL 2: CASCADE VIEW (컬럼별 분류) ── -->
     <div id="val-column" style="display:none; flex:1; min-height:0;">
       <div class="cascade-wrap">
-
-        <!-- a. SOC -->
-        <details class="cg">
-          <summary>
-            <span class="cg-arrow">▶</span>
-            <span class="cg-icon">🔋</span>
-            <span class="cg-title" style="color:#7ab3f5;">SOC</span>
-            <span class="cg-cols">soc_rate / soc_display_rate</span>
-            <span class="cg-cnt">항목 7, 8</span>
-          </summary>
-          <div class="cg-items">
-            <div class="cg-item"><span class="ci-col">soc_rate</span><span class="ci-desc">배터리 잔량 0~100% 범위, NULL 검사</span><span class="ci-id">#8</span></div>
-            <div class="cg-item"><span class="ci-col">soc_display_rate</span><span class="ci-desc">표시용 SOC 0~100% 범위 검사</span><span class="ci-id">#7</span></div>
-          </div>
+        <details class="cg"><summary><span class="cg-arrow">▶</span><span class="cg-icon">🔋</span><span class="cg-title" style="color:var(--primary);">SOC</span><span class="cg-cols">soc_rate / soc_display_rate</span><span class="cg-cnt">항목 7, 8</span></summary>
+          <div class="cg-items"><div class="cg-item"><span class="ci-col">soc_rate</span><span class="ci-desc">배터리 잔량 0~100% 범위, NULL 검사</span><span class="ci-id">#8</span></div><div class="cg-item"><span class="ci-col">soc_display_rate</span><span class="ci-desc">표시용 SOC 0~100% 범위 검사</span><span class="ci-id">#7</span></div></div>
         </details>
-
-        <!-- b. Temperature -->
-        <details class="cg">
-          <summary>
-            <span class="cg-arrow">▶</span>
-            <span class="cg-icon">🌡️</span>
-            <span class="cg-title" style="color:var(--warn);">Temperature</span>
-            <span class="cg-cols">module_temp / battery_module</span>
-            <span class="cg-cnt">항목 17–20</span>
-          </summary>
+        <details class="cg"><summary><span class="cg-arrow">▶</span><span class="cg-icon">🌡️</span><span class="cg-title" style="color:#9a5700;">Temperature</span><span class="cg-cols">module_temp / battery_module</span><span class="cg-cnt">항목 17–20</span></summary>
           <div class="cg-items">
             <div class="cg-item"><span class="ci-col">module_min_temp</span><span class="ci-desc">모듈 최저 온도 범위 −40~+85°C</span><span class="ci-id">#17</span></div>
             <div class="cg-item"><span class="ci-col">module_max_temp</span><span class="ci-desc">모듈 최고 온도 범위 −40~+85°C</span><span class="ci-id">#18</span></div>
@@ -835,31 +604,10 @@ BCP/LGES/{pid}/...
             <div class="cg-item"><span class="ci-col">battery_module_1~N</span><span class="ci-desc">각 모듈 온도 ≤ module_count, 마스크 적용</span><span class="ci-id">#20</span></div>
           </div>
         </details>
-
-        <!-- c. Mile / Speed -->
-        <details class="cg">
-          <summary>
-            <span class="cg-arrow">▶</span>
-            <span class="cg-icon">🚗</span>
-            <span class="cg-title" style="color:#c07aee;">거리·속도</span>
-            <span class="cg-cols">mile_km / em_speed_kmh</span>
-            <span class="cg-cnt">항목 4, 9</span>
-          </summary>
-          <div class="cg-items">
-            <div class="cg-item"><span class="ci-col">em_speed_kmh</span><span class="ci-desc">속도 범위 0~250 km/h (VWGKALRT: 0~255)</span><span class="ci-id">#4</span></div>
-            <div class="cg-item"><span class="ci-col">mile_km</span><span class="ci-desc">주행거리 단조 증가 검사 (감소 시 FAIL)</span><span class="ci-id">#9</span></div>
-          </div>
+        <details class="cg"><summary><span class="cg-arrow">▶</span><span class="cg-icon">🚗</span><span class="cg-title" style="color:#7f3fbf;">거리·속도</span><span class="cg-cols">mile_km / em_speed_kmh</span><span class="cg-cnt">항목 4, 9</span></summary>
+          <div class="cg-items"><div class="cg-item"><span class="ci-col">em_speed_kmh</span><span class="ci-desc">속도 범위 0~250 km/h (VWGKALRT: 0~255)</span><span class="ci-id">#4</span></div><div class="cg-item"><span class="ci-col">mile_km</span><span class="ci-desc">주행거리 단조 증가 검사 (감소 시 FAIL)</span><span class="ci-id">#9</span></div></div>
         </details>
-
-        <!-- d. Pack curr/volt -->
-        <details class="cg">
-          <summary>
-            <span class="cg-arrow">▶</span>
-            <span class="cg-icon">⚡</span>
-            <span class="cg-title" style="color:#f5a623;">Pack 전류·전압</span>
-            <span class="cg-cols">pack_curr / pack_volt / acc_* / pack_pwr</span>
-            <span class="cg-cnt">항목 5, 6, 22–26</span>
-          </summary>
+        <details class="cg"><summary><span class="cg-arrow">▶</span><span class="cg-icon">⚡</span><span class="cg-title" style="color:#9a5700;">Pack 전류·전압</span><span class="cg-cols">pack_curr / pack_volt / acc_* / pack_pwr</span><span class="cg-cnt">항목 5, 6, 22–26</span></summary>
           <div class="cg-items">
             <div class="cg-item"><span class="ci-col">pack_curr</span><span class="ci-desc">팩 전류 범위 검사 (충전 감지 기준 포함)</span><span class="ci-id">#5</span></div>
             <div class="cg-item"><span class="ci-col">pack_volt</span><span class="ci-desc">팩 전압 범위 검사</span><span class="ci-id">#6</span></div>
@@ -868,16 +616,7 @@ BCP/LGES/{pid}/...
             <div class="cg-item"><span class="ci-col">pack_pwr</span><span class="ci-desc">pack_volt × pack_curr 교차검증</span><span class="ci-id">#26</span></div>
           </div>
         </details>
-
-        <!-- e. Cell voltage -->
-        <details class="cg">
-          <summary>
-            <span class="cg-arrow">▶</span>
-            <span class="cg-icon">🔬</span>
-            <span class="cg-title" style="color:var(--accent);">셀 전압</span>
-            <span class="cg-cols">cell_min/max_volt / cell_voltage_1~N</span>
-            <span class="cg-cnt">항목 11–16</span>
-          </summary>
+        <details class="cg"><summary><span class="cg-arrow">▶</span><span class="cg-icon">🔬</span><span class="cg-title" style="color:#1a7f37;">셀 전압</span><span class="cg-cols">cell_min/max_volt / cell_voltage_1~N</span><span class="cg-cnt">항목 11–16</span></summary>
           <div class="cg-items">
             <div class="cg-item"><span class="ci-col">cell_min_volt</span><span class="ci-desc">최소 셀 전압 2.6~4.5V</span><span class="ci-id">#11</span></div>
             <div class="cg-item"><span class="ci-col">cell_max_volt</span><span class="ci-desc">최대 셀 전압 2.6~4.5V</span><span class="ci-id">#12</span></div>
@@ -886,77 +625,66 @@ BCP/LGES/{pid}/...
             <div class="cg-item"><span class="ci-col">cell_voltage_1~N</span><span class="ci-desc">수집 구간 마스크 + 주기 검증 (N개 개별)</span><span class="ci-id">#16</span></div>
           </div>
         </details>
-
-        <!-- note -->
-        <div style="padding:10px 14px; background:rgba(255,255,255,0.03); border-radius:8px; font-size:11px; color:var(--muted);">
-          ※ 위 5개 그룹 외 항목: <span style="color:var(--text);">unix_time·ignit_status·chg_conr</span> (타임스탬프/상태, 항목 1–3),
-          <span style="color:var(--text);">main_relay·oper_second·ir·soh_rate</span> (릴레이/시간/내부저항/건강도, 항목 6,21,27,32),
-          복합 로직 검증 (항목 28–31, 33–35)
+        <div style="padding:9px 14px; background:var(--bg2); border-radius:8px; font-size:11px; color:var(--muted);">
+          ※ 위 5개 그룹 외 항목: <span style="color:var(--text);">unix_time·ignit_status·chg_conr</span> (항목 1–3),
+          <span style="color:var(--text);">main_relay·oper_second·ir·soh_rate</span> (항목 6,21,27,32), 복합 로직 (항목 28–31, 33–35)
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-       SLIDE 6 · FLEET-SPECIFIC EXCEPTIONS
-  ═══════════════════════════════════════════════ -->
+  <!-- SLIDE 6 · FLEET EXCEPTIONS -->
   <div class="slide" id="slide-6">
     <div class="slide-header">
       <div class="slide-tag">Fleet Rules</div>
       <h2>플릿·차종별 예외 처리</h2>
     </div>
 
-    <div style="flex:1; display:flex; flex-direction:column; gap:12px; overflow-y:auto;">
-      <div style="font-size:13px; color:var(--muted); margin-bottom:4px;">
+    <div style="flex:1; display:flex; flex-direction:column; gap:11px; overflow-y:auto;">
+      <div style="font-size:13px; color:var(--muted); margin-bottom:2px;">
         동일 BMS 컬럼이라도 <strong style="color:var(--text);">플릿·차량 모델</strong>에 따라 검증 기준이 달라집니다.
       </div>
 
-      <!-- VWGKALRT -->
-      <div style="padding:14px 16px; background:var(--card); border:1px solid rgba(255,255,255,0.07); border-left:3px solid #5aafff; border-radius:10px;">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+      <div style="padding:13px 16px; background:var(--bg); border:1px solid var(--border); border-left:3px solid var(--primary); border-radius:10px; box-shadow:var(--shadow);">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
           <span class="exception-fleet fleet-vwg">VWGKALRT</span>
           <strong style="font-size:14px;">Audi Q4 e-tron · VW ID.5 전용 규칙</strong>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; font-size:12px;">
-          <div style="padding:8px 10px; background:rgba(255,255,255,0.04); border-radius:8px;">
-            <div style="color:var(--muted); margin-bottom:4px;">acc_dchg_ah / acc_dchg_wh</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px; font-size:12px;">
+          <div style="padding:7px 10px; background:var(--bg2); border-radius:8px;">
+            <div style="color:var(--muted); margin-bottom:3px;">acc_dchg_ah / acc_dchg_wh</div>
             <div>음수 값 <span class="badge badge-pass">허용</span></div>
-            <div style="color:var(--muted); font-size:11px; margin-top:3px;">다른 플릿: ≥ 0 필수</div>
+            <div style="color:var(--muted); font-size:11px; margin-top:2px;">다른 플릿: ≥ 0 필수</div>
           </div>
-          <div style="padding:8px 10px; background:rgba(255,255,255,0.04); border-radius:8px;">
-            <div style="color:var(--muted); margin-bottom:4px;">em_speed_kmh 최대</div>
-            <div>0 ~ <span style="color:var(--accent);">255</span> km/h</div>
-            <div style="color:var(--muted); font-size:11px; margin-top:3px;">다른 플릿: 0 ~ 250</div>
+          <div style="padding:7px 10px; background:var(--bg2); border-radius:8px;">
+            <div style="color:var(--muted); margin-bottom:3px;">em_speed_kmh 최대</div>
+            <div>0 ~ <span style="color:var(--primary); font-weight:600;">255</span> km/h</div>
+            <div style="color:var(--muted); font-size:11px; margin-top:2px;">다른 플릿: 0 ~ 250</div>
           </div>
-          <div style="padding:8px 10px; background:rgba(255,255,255,0.04); border-radius:8px;">
-            <div style="color:var(--muted); margin-bottom:4px;">충전 감지 기준 전류</div>
-            <div>pack_curr <span style="color:var(--accent);">&gt; +1A</span></div>
-            <div style="color:var(--muted); font-size:11px; margin-top:3px;">다른 플릿: &lt; −1A</div>
+          <div style="padding:7px 10px; background:var(--bg2); border-radius:8px;">
+            <div style="color:var(--muted); margin-bottom:3px;">충전 감지 기준 전류</div>
+            <div>pack_curr <span style="color:var(--primary); font-weight:600;">&gt; +1A</span></div>
+            <div style="color:var(--muted); font-size:11px; margin-top:2px;">다른 플릿: &lt; −1A</div>
           </div>
         </div>
-        <div style="font-size:11px; color:var(--muted); margin-top:8px;">
-          + 수집 윈도우 마스크(항목 16, 19, 20) 적용 — IGN OFF·충전·슬립 대기 구간 선택 검증
-        </div>
+        <div style="font-size:11px; color:var(--muted); margin-top:7px;">+ 수집 윈도우 마스크(항목 16, 19, 20) — IGN OFF·충전·슬립 대기 구간 선택 검증</div>
       </div>
 
-      <!-- RAY -->
-      <div style="padding:14px 16px; background:var(--card); border:1px solid rgba(255,255,255,0.07); border-left:3px solid var(--warn); border-radius:10px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="padding:13px 16px; background:var(--bg); border:1px solid var(--border); border-left:3px solid var(--warn); border-radius:10px; box-shadow:var(--shadow); display:flex; gap:14px; align-items:flex-start;">
         <span class="exception-fleet fleet-ray">LGES · RAY</span>
         <div>
-          <div style="font-size:14px; font-weight:600; margin-bottom:5px;">Kia Ray 전용 — 누적 에너지 N/A</div>
+          <div style="font-size:14px; font-weight:600; margin-bottom:4px;">Kia Ray 전용 — 누적 에너지 N/A</div>
           <div style="font-size:12px; color:var(--muted);">
-            acc_chg_ah / acc_dchg_ah / acc_chg_wh / acc_dchg_wh → 항목 22~25 전부
-            <span class="badge badge-na">N/A</span><br>
+            acc_chg_ah / acc_dchg_ah / acc_chg_wh / acc_dchg_wh → 항목 22~25 전부 <span class="badge badge-na">N/A</span><br>
             <span style="font-size:11px;">해당 컬럼이 BMS에 존재하지 않음</span>
           </div>
         </div>
       </div>
 
-      <!-- BOLT 2017 -->
-      <div style="padding:14px 16px; background:var(--card); border:1px solid rgba(255,255,255,0.07); border-left:3px solid #5afa8a; border-radius:10px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="padding:13px 16px; background:var(--bg); border:1px solid var(--border); border-left:3px solid var(--pass); border-radius:10px; box-shadow:var(--shadow); display:flex; gap:14px; align-items:flex-start;">
         <span class="exception-fleet fleet-bolt">BOLT 2017</span>
         <div>
-          <div style="font-size:14px; font-weight:600; margin-bottom:5px;">Chevy Bolt 2017 — mile_km N/A</div>
+          <div style="font-size:14px; font-weight:600; margin-bottom:4px;">Chevy Bolt 2017 — mile_km N/A</div>
           <div style="font-size:12px; color:var(--muted);">
             항목 10 (mile_km 선형 증가 검증) → <span class="badge badge-na">N/A</span><br>
             <span style="font-size:11px;">2017년식에는 주행거리 컬럼 부재</span>
@@ -964,133 +692,86 @@ BCP/LGES/{pid}/...
         </div>
       </div>
 
-      <!-- summary table -->
-      <div class="card" style="padding:14px 16px;">
-        <div style="font-size:11px; color:var(--accent); letter-spacing:1px; margin-bottom:10px;">예외 규칙 요약</div>
+      <div class="card" style="padding:13px 16px;">
+        <div style="font-size:11px; color:var(--primary); letter-spacing:1px; margin-bottom:9px; font-weight:600;">예외 규칙 요약</div>
         <table>
-          <thead>
-            <tr>
-              <th>항목</th><th>기본 규칙</th><th>VWGKALRT</th><th>RAY</th><th>BOLT 2017</th>
-            </tr>
-          </thead>
+          <thead><tr><th>항목</th><th>기본 규칙</th><th>VWGKALRT</th><th>RAY</th><th>BOLT 2017</th></tr></thead>
           <tbody>
-            <tr>
-              <td>em_speed_kmh</td>
-              <td>0 ~ 250</td>
-              <td style="color:var(--accent);">0 ~ 255</td>
-              <td>0 ~ 250</td>
-              <td>0 ~ 250</td>
-            </tr>
-            <tr>
-              <td>acc_dchg_ah/wh</td>
-              <td>≥ 0</td>
-              <td style="color:var(--accent);">음수 허용</td>
-              <td style="color:var(--na);">N/A</td>
-              <td>≥ 0</td>
-            </tr>
-            <tr>
-              <td>충전 전류 방향</td>
-              <td>curr &lt; −1A</td>
-              <td style="color:var(--accent);">curr &gt; +1A</td>
-              <td>curr &lt; −1A</td>
-              <td>curr &lt; −1A</td>
-            </tr>
-            <tr>
-              <td>mile_km</td>
-              <td>선형 증가</td>
-              <td>선형 증가</td>
-              <td>선형 증가</td>
-              <td style="color:var(--na);">N/A</td>
-            </tr>
+            <tr><td>em_speed_kmh</td><td>0 ~ 250</td><td style="color:var(--primary); font-weight:600;">0 ~ 255</td><td>0 ~ 250</td><td>0 ~ 250</td></tr>
+            <tr><td>acc_dchg_ah/wh</td><td>≥ 0</td><td style="color:var(--primary); font-weight:600;">음수 허용</td><td style="color:var(--na);">N/A</td><td>≥ 0</td></tr>
+            <tr><td>충전 전류 방향</td><td>curr &lt; −1A</td><td style="color:var(--primary); font-weight:600;">curr &gt; +1A</td><td>curr &lt; −1A</td><td>curr &lt; −1A</td></tr>
+            <tr><td>mile_km</td><td>선형 증가</td><td>선형 증가</td><td>선형 증가</td><td style="color:var(--na);">N/A</td></tr>
           </tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-       SLIDE 7 · PERFORMANCE (부가 설명)
-  ═══════════════════════════════════════════════ -->
+  <!-- SLIDE 7 · PERFORMANCE -->
   <div class="slide" id="slide-7">
     <div class="slide-header">
       <div class="slide-tag">Performance · Appendix</div>
       <h2>성능 최적화 (부가 설명)</h2>
     </div>
 
-    <div class="grid-2" style="flex:1; gap:16px;">
-      <div style="display:flex; flex-direction:column; gap:12px;">
+    <div class="grid-2" style="flex:1; gap:14px;">
+      <div style="display:flex; flex-direction:column; gap:11px;">
         <div class="card card-accent">
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
-              <h3 style="font-size:14px; margin-bottom:6px;">S3 메타데이터 캐시</h3>
-              <div style="font-size:12px; color:var(--muted); line-height:1.7;">
-                클래스 수준 <code style="background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:3px; font-size:11px;">_vehicle_master_cache</code><br>
+              <h3 style="font-size:14px; margin-bottom:5px;">S3 메타데이터 캐시</h3>
+              <div style="font-size:12px; color:var(--muted); line-height:1.75;">
+                클래스 수준 <code style="background:var(--bg2); padding:1px 5px; border-radius:3px; font-size:11px;">_vehicle_master_cache</code><br>
                 세션당 S3 호출 <strong style="color:var(--text);">1회</strong>로 vehicle_master.json 재사용<br>
                 배치 100대 처리 → 99회 S3 호출 절감
               </div>
             </div>
-            <div style="text-align:right; color:var(--accent); font-size:22px; font-weight:800;">×100</div>
+            <div style="text-align:right; color:var(--primary); font-size:20px; font-weight:800;">×100</div>
           </div>
         </div>
-
         <div class="card">
-          <h3 style="font-size:14px; margin-bottom:8px;">선택적 컬럼 로딩 (usecols)</h3>
-          <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">
-            436개 컬럼 중 검증에 필요한 278개만 로드
-          </div>
+          <h3 style="font-size:14px; margin-bottom:7px;">선택적 컬럼 로딩 (usecols)</h3>
+          <div style="font-size:12px; color:var(--muted); margin-bottom:9px;">436개 컬럼 중 검증에 필요한 278개만 로드</div>
           <div>
-            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
-              <span>로드 컬럼</span>
-              <span style="color:var(--accent);">278 / 436</span>
-            </div>
-            <div class="progress-bar" style="height:10px;">
-              <div class="progress-fill" style="width:63.8%;"></div>
-            </div>
-            <div style="font-size:11px; color:var(--muted); margin-top:4px;">메모리 사용량 약 36% 감소</div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:3px;"><span>로드 컬럼</span><span style="color:var(--primary); font-weight:600;">278 / 436</span></div>
+            <div class="progress-bar" style="height:9px;"><div class="progress-fill" style="width:63.8%;"></div></div>
+            <div style="font-size:11px; color:var(--muted); margin-top:3px;">메모리 사용량 약 36% 감소</div>
           </div>
         </div>
-
         <div class="card">
-          <h3 style="font-size:14px; margin-bottom:8px;">NumPy 벡터화 연산</h3>
-          <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">
-            수집 주기 검증 — for 루프 대신 <code style="background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:3px; font-size:11px;">np.diff</code> + <code style="background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:3px; font-size:11px;">np.where</code>
-          </div>
-          <div class="code-block" style="font-size:11px; padding:10px 12px;">
+          <h3 style="font-size:14px; margin-bottom:7px;">NumPy 벡터화 연산</h3>
+          <div style="font-size:12px; color:var(--muted); margin-bottom:7px;">수집 주기 검증 — for 루프 대신 np.diff + np.where</div>
+          <div class="code-block" style="font-size:11px; padding:9px 12px;">
 diffs = <span class="keyword">np</span>.diff(df[<span class="string">'unix_time'</span>].values)
 mask  = <span class="keyword">np</span>.where(diffs &gt; 60)[0]
           </div>
         </div>
       </div>
-
-      <div style="display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; flex-direction:column; gap:11px;">
         <div class="card">
-          <h3 style="font-size:14px; margin-bottom:10px;">배치 처리 최적화</h3>
+          <h3 style="font-size:14px; margin-bottom:9px;">배치 처리 최적화</h3>
           <div style="font-size:12px; color:var(--muted); line-height:1.8;">
-            검증 완료 후 <code style="background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:3px; font-size:11px;">self.df = None</code> 으로 메모리 즉시 해제<br>
+            검증 완료 후 메모리 해제로 대규모 배치 처리 지원<br>
             단일 Validator 인스턴스를 배치 루프에서 재사용<br>
             WorkerThread(QThread)로 UI와 검증 스레드 분리
           </div>
         </div>
-
         <div class="card card-primary">
-          <h3 style="font-size:14px; margin-bottom:10px;">최적화 효과 요약</h3>
+          <h3 style="font-size:14px; margin-bottom:9px;">최적화 효과 요약</h3>
           <table>
             <thead><tr><th>최적화 항목</th><th>효과</th></tr></thead>
             <tbody>
-              <tr><td>S3 캐시</td><td style="color:var(--accent);">세션당 1회 S3 호출</td></tr>
-              <tr><td>usecols</td><td style="color:var(--accent);">메모리 36% 절감</td></tr>
-              <tr><td>NumPy 벡터화</td><td style="color:var(--accent);">for 루프 대비 ~10배 속도</td></tr>
-              <tr><td>메모리 해제</td><td style="color:var(--accent);">대규모 배치 처리 가능</td></tr>
+              <tr><td>S3 캐시</td><td style="color:var(--primary); font-weight:500;">세션당 1회 S3 호출</td></tr>
+              <tr><td>usecols</td><td style="color:var(--primary); font-weight:500;">메모리 36% 절감</td></tr>
+              <tr><td>NumPy 벡터화</td><td style="color:var(--primary); font-weight:500;">for 루프 대비 ~10배 속도</td></tr>
+              <tr><td>메모리 해제</td><td style="color:var(--primary); font-weight:500;">대규모 배치 처리 가능</td></tr>
             </tbody>
           </table>
         </div>
-
         <div class="card">
-          <h3 style="font-size:14px; margin-bottom:10px;">오류 샘플 자동 추출</h3>
-          <div style="font-size:12px; color:var(--muted); line-height:1.7; margin-bottom:8px;">
-            FAIL 항목마다 첫 번째 오류 행의 인덱스·값 자동 출력
-          </div>
-          <div class="code-block" style="font-size:11px; padding:10px 12px;">
+          <h3 style="font-size:14px; margin-bottom:9px;">오류 샘플 자동 추출</h3>
+          <div style="font-size:12px; color:var(--muted); line-height:1.7; margin-bottom:7px;">FAIL 항목마다 첫 번째 오류 행의 인덱스·값 자동 출력</div>
+          <div class="code-block" style="font-size:11px; padding:9px 12px;">
 <span class="comment"># Details 필드 예시</span>
 <span class="string">"42건 위반 | 첫 에러: idx=1742, cell_voltage_1=3.82"</span>
           </div>
@@ -1099,51 +780,34 @@ mask  = <span class="keyword">np</span>.where(diffs &gt; 60)[0]
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-       SLIDE 8 · HTML REPORT [A]
-  ═══════════════════════════════════════════════ -->
+  <!-- SLIDE 8 · HTML REPORT -->
   <div class="slide" id="slide-8">
     <div class="slide-header">
       <div class="slide-tag">신규 기능 A · HTML Report</div>
       <h2>HTML 검증 리포트 생성</h2>
     </div>
 
-    <div class="grid-2" style="flex:1; gap:20px;">
-      <!-- left: 기능 설명 -->
-      <div style="display:flex; flex-direction:column; gap:12px;">
+    <div class="grid-2" style="flex:1; gap:18px;">
+      <div style="display:flex; flex-direction:column; gap:11px;">
         <div class="card card-accent">
-          <h3 style="font-size:14px; margin-bottom:10px;">개요</h3>
+          <h3 style="font-size:14px; margin-bottom:9px;">개요</h3>
           <div style="font-size:13px; color:var(--muted); line-height:1.8;">
             기존 XLSX 리포트에 더해 <strong style="color:var(--text);">HTML 형식 리포트</strong>를 함께 생성합니다.<br>
             브라우저에서 바로 열어 확인 가능하며, 이메일·공유 링크로 배포할 수 있습니다.
           </div>
         </div>
-
         <div class="card card-primary">
-          <h3 style="font-size:14px; margin-bottom:10px;">XLSX 대비 HTML 리포트 장점</h3>
-          <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
-            <div style="display:flex; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border-radius:8px;">
-              <span style="color:var(--accent); font-weight:700;">✓</span>
-              <div>Excel 없이 브라우저만으로 열람 가능</div>
-            </div>
-            <div style="display:flex; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border-radius:8px;">
-              <span style="color:var(--accent); font-weight:700;">✓</span>
-              <div>PASS/FAIL 색상 코딩 + 인터랙티브 필터</div>
-            </div>
-            <div style="display:flex; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border-radius:8px;">
-              <span style="color:var(--accent); font-weight:700;">✓</span>
-              <div>요약 헤더(전체 통계) + 상세 테이블 일체화</div>
-            </div>
-            <div style="display:flex; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border-radius:8px;">
-              <span style="color:var(--accent); font-weight:700;">✓</span>
-              <div>비엔지니어도 결과 이해하기 쉬운 레이아웃</div>
-            </div>
+          <h3 style="font-size:14px; margin-bottom:9px;">XLSX 대비 HTML 리포트 장점</h3>
+          <div style="display:flex; flex-direction:column; gap:7px; font-size:12px;">
+            <div style="display:flex; gap:9px; padding:7px 10px; background:var(--bg2); border-radius:8px;"><span style="color:var(--primary); font-weight:700;">✓</span><div>Excel 없이 브라우저만으로 열람 가능</div></div>
+            <div style="display:flex; gap:9px; padding:7px 10px; background:var(--bg2); border-radius:8px;"><span style="color:var(--primary); font-weight:700;">✓</span><div>상태별 조건부 서식 + 인터랙티브 필터</div></div>
+            <div style="display:flex; gap:9px; padding:7px 10px; background:var(--bg2); border-radius:8px;"><span style="color:var(--primary); font-weight:700;">✓</span><div>요약 헤더(전체 통계) + 상세 테이블 일체화</div></div>
+            <div style="display:flex; gap:9px; padding:7px 10px; background:var(--bg2); border-radius:8px;"><span style="color:var(--primary); font-weight:700;">✓</span><div>비엔지니어도 결과 이해하기 쉬운 레이아웃</div></div>
           </div>
         </div>
-
         <div class="card">
-          <h3 style="font-size:14px; margin-bottom:8px;">호출 방법</h3>
-          <div class="code-block" style="font-size:11px; padding:10px 12px;">
+          <h3 style="font-size:14px; margin-bottom:7px;">호출 방법</h3>
+          <div class="code-block" style="font-size:11px; padding:9px 12px;">
 <span class="comment"># data_validator_bms.py 내 추가</span>
 validator.generate_html_report(
     <span class="string">"bms_report_2793.html"</span>
@@ -1152,125 +816,51 @@ validator.generate_html_report(
         </div>
       </div>
 
-      <!-- right: HTML report mock -->
-      <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="display:flex; flex-direction:column; gap:9px;">
         <div class="card" style="padding:14px 16px; flex:1;">
-          <div style="font-size:11px; color:var(--accent); margin-bottom:12px;">리포트 미리보기 (mock)</div>
-
-          <!-- summary header -->
-          <div style="display:flex; gap:10px; margin-bottom:12px;">
-            <div style="flex:1; padding:8px; background:rgba(0,196,160,0.12); border-radius:8px; text-align:center;">
-              <div style="font-size:22px; font-weight:800; color:var(--pass);">58</div>
-              <div style="font-size:11px; color:var(--muted);">PASS</div>
-            </div>
-            <div style="flex:1; padding:8px; background:rgba(255,90,90,0.12); border-radius:8px; text-align:center;">
-              <div style="font-size:22px; font-weight:800; color:var(--fail);">8</div>
-              <div style="font-size:11px; color:var(--muted);">FAIL</div>
-            </div>
-            <div style="flex:1; padding:8px; background:rgba(245,166,35,0.12); border-radius:8px; text-align:center;">
-              <div style="font-size:22px; font-weight:800; color:var(--warn);">3</div>
-              <div style="font-size:11px; color:var(--muted);">WARNING</div>
-            </div>
-            <div style="flex:1; padding:8px; background:rgba(122,143,168,0.12); border-radius:8px; text-align:center;">
-              <div style="font-size:22px; font-weight:800; color:var(--na);">2</div>
-              <div style="font-size:11px; color:var(--muted);">N/A</div>
-            </div>
+          <div style="font-size:11px; color:var(--primary); margin-bottom:11px; font-weight:600;">리포트 미리보기 (mock)</div>
+          <div style="display:flex; gap:9px; margin-bottom:11px;">
+            <div style="flex:1; padding:7px; background:rgba(52,199,89,0.1); border-radius:8px; text-align:center;"><div style="font-size:20px; font-weight:800; color:#1a7f37;">58</div><div style="font-size:11px; color:var(--muted);">PASS</div></div>
+            <div style="flex:1; padding:7px; background:rgba(255,59,48,0.1); border-radius:8px; text-align:center;"><div style="font-size:20px; font-weight:800; color:#c0392b;">8</div><div style="font-size:11px; color:var(--muted);">FAIL</div></div>
+            <div style="flex:1; padding:7px; background:rgba(255,149,0,0.1); border-radius:8px; text-align:center;"><div style="font-size:20px; font-weight:800; color:#9a5700;">3</div><div style="font-size:11px; color:var(--muted);">WARN</div></div>
+            <div style="flex:1; padding:7px; background:rgba(142,142,147,0.1); border-radius:8px; text-align:center;"><div style="font-size:20px; font-weight:800; color:var(--na);">2</div><div style="font-size:11px; color:var(--muted);">N/A</div></div>
           </div>
-
-          <!-- rows -->
-          <div style="font-size:10px; color:var(--muted); padding:4px 12px; display:flex; gap:10px;">
-            <span style="min-width:38px;">ID</span>
-            <span style="flex:1;">Column</span>
-            <span style="flex:1;">Check</span>
-            <span style="min-width:60px; text-align:center;">Status</span>
-            <span style="min-width:40px; text-align:right;">Count</span>
-          </div>
-          <div class="report-row">
-            <span class="rid">1-1</span>
-            <span class="rcol">unix_time</span>
-            <span class="rchk">수집 주기</span>
-            <span class="rsts"><span class="badge badge-pass">PASS</span></span>
-            <span class="rcnt">0</span>
-          </div>
-          <div class="report-row">
-            <span class="rid">16-1</span>
-            <span class="rcol">cell_voltage_1~N</span>
-            <span class="rchk">수집 주기</span>
-            <span class="rsts"><span class="badge badge-fail">FAIL</span></span>
-            <span class="rcnt" style="color:var(--fail);">42</span>
-          </div>
-          <div class="report-row" style="background:rgba(255,90,90,0.05); border-color:rgba(255,90,90,0.12);">
-            <span class="rid" style="color:var(--muted); font-size:10px;">└ 오류</span>
-            <span style="flex:2; font-size:11px; color:var(--fail);">idx=1742, cell_voltage_1=3.82, ignit_status=0</span>
-          </div>
-          <div class="report-row">
-            <span class="rid">19-1</span>
-            <span class="rcol">module_avg_temp</span>
-            <span class="rchk">수집 주기</span>
-            <span class="rsts"><span class="badge badge-warn">WARN</span></span>
-            <span class="rcnt" style="color:var(--warn);">3</span>
-          </div>
-          <div class="report-row">
-            <span class="rid">22-1</span>
-            <span class="rcol">acc_chg_ah</span>
-            <span class="rchk">NULL 검사</span>
-            <span class="rsts"><span class="badge badge-na">N/A</span></span>
-            <span class="rcnt">—</span>
-          </div>
-          <div class="report-row">
-            <span class="rid">29-1</span>
-            <span class="rcol">시작/종료 상태</span>
-            <span class="rchk">유효 튜플</span>
-            <span class="rsts"><span class="badge badge-pass">PASS</span></span>
-            <span class="rcnt">0</span>
-          </div>
+          <div style="font-size:10px; color:var(--muted); padding:4px 12px; display:flex; gap:10px;"><span style="min-width:38px;">ID</span><span style="flex:1;">Column</span><span style="flex:1;">Check</span><span style="min-width:60px; text-align:center;">Status</span><span style="min-width:40px; text-align:right;">Count</span></div>
+          <div class="report-row"><span class="rid">1-1</span><span class="rcol">unix_time</span><span class="rchk">수집 주기</span><span class="rsts"><span class="badge badge-pass">PASS</span></span><span class="rcnt">0</span></div>
+          <div class="report-row"><span class="rid">16-1</span><span class="rcol">cell_voltage_1~N</span><span class="rchk">수집 주기</span><span class="rsts"><span class="badge badge-fail">FAIL</span></span><span class="rcnt" style="color:var(--fail);">42</span></div>
+          <div class="report-row" style="background:rgba(255,59,48,0.05);"><span class="rid" style="font-size:10px;">└ 오류</span><span style="flex:2; font-size:11px; color:var(--fail);">idx=1742, cell_voltage_1=3.82, ignit_status=0</span></div>
+          <div class="report-row"><span class="rid">19-1</span><span class="rcol">module_avg_temp</span><span class="rchk">수집 주기</span><span class="rsts"><span class="badge badge-warn">WARN</span></span><span class="rcnt" style="color:var(--warn);">3</span></div>
+          <div class="report-row"><span class="rid">22-1</span><span class="rcol">acc_chg_ah</span><span class="rchk">NULL 검사</span><span class="rsts"><span class="badge badge-na">N/A</span></span><span class="rcnt">—</span></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-       SLIDE 9 · RESULT VIEWER [B]
-  ═══════════════════════════════════════════════ -->
+  <!-- SLIDE 9 · RESULT VIEWER -->
   <div class="slide" id="slide-9">
     <div class="slide-header">
       <div class="slide-tag">신규 기능 B · Result Viewer</div>
       <h2>결과 뷰어 대시보드</h2>
     </div>
 
-    <div class="grid-2" style="flex:1; gap:20px;">
-      <!-- left: 기능 설명 -->
-      <div style="display:flex; flex-direction:column; gap:12px;">
+    <div class="grid-2" style="flex:1; gap:18px;">
+      <div style="display:flex; flex-direction:column; gap:11px;">
         <div class="card card-accent">
-          <h3 style="font-size:14px; margin-bottom:10px;">개요</h3>
+          <h3 style="font-size:14px; margin-bottom:9px;">개요</h3>
           <div style="font-size:13px; color:var(--muted); line-height:1.8;">
             생성된 <strong style="color:var(--text);">HTML/XLSX 리포트</strong>를 브라우저에서 직접 불러와<br>
             필터·검색·정렬로 결과를 탐색하는 독립형 뷰어입니다.
           </div>
         </div>
-
         <div class="card card-primary">
-          <h3 style="font-size:14px; margin-bottom:10px;">주요 기능</h3>
-          <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
-            <div style="display:flex; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border-radius:8px;">
-              <span style="font-size:16px;">📂</span>
-              <div><strong>파일 불러오기</strong><br><span style="color:var(--muted);">CSV/XLSX 결과 파일 로컬에서 드래그&amp;드롭</span></div>
-            </div>
-            <div style="display:flex; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border-radius:8px;">
-              <span style="font-size:16px;">🔍</span>
-              <div><strong>Status 필터</strong><br><span style="color:var(--muted);">PASS/FAIL/WARNING/N/A 토글 필터링</span></div>
-            </div>
-            <div style="display:flex; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border-radius:8px;">
-              <span style="font-size:16px;">📊</span>
-              <div><strong>요약 차트</strong><br><span style="color:var(--muted);">그룹별 PASS 비율 시각화</span></div>
-            </div>
-            <div style="display:flex; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border-radius:8px;">
-              <span style="font-size:16px;">🖨</span>
-              <div><strong>인쇄 / PDF 저장</strong><br><span style="color:var(--muted);">브라우저 인쇄 기능으로 PDF 출력</span></div>
-            </div>
+          <h3 style="font-size:14px; margin-bottom:9px;">주요 기능</h3>
+          <div style="display:flex; flex-direction:column; gap:7px; font-size:12px;">
+            <div style="display:flex; gap:9px; padding:7px 10px; background:var(--bg2); border-radius:8px;"><span style="font-size:15px;">📂</span><div><strong>파일 불러오기</strong><br><span style="color:var(--muted);">CSV/XLSX 결과 파일 로컬에서 드래그&amp;드롭</span></div></div>
+            <div style="display:flex; gap:9px; padding:7px 10px; background:var(--bg2); border-radius:8px;"><span style="font-size:15px;">🔍</span><div><strong>Status 필터</strong><br><span style="color:var(--muted);">PASS/FAIL/WARNING/N/A 토글 필터링</span></div></div>
+            <div style="display:flex; gap:9px; padding:7px 10px; background:var(--bg2); border-radius:8px;"><span style="font-size:15px;">📊</span><div><strong>요약 차트</strong><br><span style="color:var(--muted);">그룹별 PASS 비율 시각화</span></div></div>
+            <div style="display:flex; gap:9px; padding:7px 10px; background:var(--bg2); border-radius:8px;"><span style="font-size:15px;">🖨</span><div><strong>인쇄 / PDF 저장</strong><br><span style="color:var(--muted);">브라우저 인쇄 기능으로 PDF 출력</span></div></div>
           </div>
         </div>
-
         <div class="card">
           <div style="font-size:12px; color:var(--muted);">
             <strong style="color:var(--text);">report_viewer.html</strong> — 독립 파일<br>
@@ -1280,151 +870,197 @@ validator.generate_html_report(
         </div>
       </div>
 
-      <!-- right: dashboard mock -->
-      <div class="card" style="padding:16px 18px; display:flex; flex-direction:column; gap:12px;">
-        <div style="font-size:11px; color:var(--accent);">대시보드 미리보기 (mock)</div>
-
-        <!-- filter bar -->
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button style="padding:4px 12px; border-radius:16px; border:1px solid var(--pass); background:rgba(0,196,160,0.15); color:var(--pass); font-size:11px; cursor:default;">PASS ✓</button>
-          <button style="padding:4px 12px; border-radius:16px; border:1px solid var(--fail); background:rgba(255,90,90,0.15); color:var(--fail); font-size:11px; cursor:default;">FAIL ✓</button>
-          <button style="padding:4px 12px; border-radius:16px; border:1px solid var(--warn); background:rgba(245,166,35,0.10); color:var(--warn); font-size:11px; cursor:default;">WARNING ✓</button>
-          <button style="padding:4px 12px; border-radius:16px; border:1px solid var(--na); background:transparent; color:var(--muted); font-size:11px; cursor:default;">N/A</button>
+      <div class="card" style="padding:15px 17px; display:flex; flex-direction:column; gap:11px;">
+        <div style="font-size:11px; color:var(--primary); font-weight:600;">대시보드 미리보기 (mock)</div>
+        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+          <button style="padding:3px 11px; border-radius:16px; border:1px solid var(--pass); background:rgba(52,199,89,0.12); color:#1a7f37; font-size:11px; cursor:default;">PASS ✓</button>
+          <button style="padding:3px 11px; border-radius:16px; border:1px solid var(--fail); background:rgba(255,59,48,0.12); color:#c0392b; font-size:11px; cursor:default;">FAIL ✓</button>
+          <button style="padding:3px 11px; border-radius:16px; border:1px solid var(--warn); background:rgba(255,149,0,0.10); color:#9a5700; font-size:11px; cursor:default;">WARNING ✓</button>
+          <button style="padding:3px 11px; border-radius:16px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:11px; cursor:default;">N/A</button>
         </div>
-
-        <!-- summary donut mock -->
-        <div style="display:flex; gap:10px; align-items:center; padding:10px 12px; background:rgba(255,255,255,0.03); border-radius:10px;">
-          <div style="position:relative; width:64px; height:64px; flex-shrink:0;">
+        <div style="display:flex; gap:10px; align-items:center; padding:10px 12px; background:var(--bg2); border-radius:10px;">
+          <div style="position:relative; width:60px; height:60px; flex-shrink:0;">
             <svg viewBox="0 0 64 64" style="transform:rotate(-90deg);">
-              <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+              <circle cx="32" cy="32" r="26" fill="none" stroke="var(--border)" stroke-width="10"/>
               <circle cx="32" cy="32" r="26" fill="none" stroke="var(--pass)" stroke-width="10" stroke-dasharray="103 60" stroke-dashoffset="0"/>
               <circle cx="32" cy="32" r="26" fill="none" stroke="var(--fail)" stroke-width="10" stroke-dasharray="21 142" stroke-dashoffset="-103"/>
               <circle cx="32" cy="32" r="26" fill="none" stroke="var(--warn)" stroke-width="10" stroke-dasharray="9 154" stroke-dashoffset="-124"/>
             </svg>
-            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--accent);">82%</div>
+            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:var(--primary);">82%</div>
           </div>
-          <div style="display:flex; flex-direction:column; gap:4px; font-size:12px;">
-            <div style="display:flex; gap:8px; align-items:center;"><span style="width:10px; height:10px; border-radius:50%; background:var(--pass); display:inline-block;"></span>PASS 58</div>
-            <div style="display:flex; gap:8px; align-items:center;"><span style="width:10px; height:10px; border-radius:50%; background:var(--fail); display:inline-block;"></span>FAIL 8</div>
-            <div style="display:flex; gap:8px; align-items:center;"><span style="width:10px; height:10px; border-radius:50%; background:var(--warn); display:inline-block;"></span>WARNING 3</div>
-            <div style="display:flex; gap:8px; align-items:center;"><span style="width:10px; height:10px; border-radius:50%; background:var(--na); display:inline-block;"></span>N/A 2</div>
+          <div style="display:flex; flex-direction:column; gap:3px; font-size:12px;">
+            <div style="display:flex; gap:7px; align-items:center;"><span style="width:9px; height:9px; border-radius:50%; background:var(--pass); display:inline-block;"></span>PASS 58</div>
+            <div style="display:flex; gap:7px; align-items:center;"><span style="width:9px; height:9px; border-radius:50%; background:var(--fail); display:inline-block;"></span>FAIL 8</div>
+            <div style="display:flex; gap:7px; align-items:center;"><span style="width:9px; height:9px; border-radius:50%; background:var(--warn); display:inline-block;"></span>WARNING 3</div>
+            <div style="display:flex; gap:7px; align-items:center;"><span style="width:9px; height:9px; border-radius:50%; background:var(--na); display:inline-block;"></span>N/A 2</div>
           </div>
         </div>
-
-        <!-- group bars -->
-        <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="min-width:80px; color:var(--muted);">기본 상태 (A)</span>
-            <div style="flex:1; height:8px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden;"><div style="width:90%; height:100%; background:var(--pass);"></div></div>
-            <span style="color:var(--pass);">90%</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="min-width:80px; color:var(--muted);">셀 전압 (B)</span>
-            <div style="flex:1; height:8px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden;"><div style="width:67%; height:100%; background:var(--warn);"></div></div>
-            <span style="color:var(--warn);">67%</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="min-width:80px; color:var(--muted);">모듈 온도 (C)</span>
-            <div style="flex:1; height:8px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden;"><div style="width:75%; height:100%; background:var(--pass);"></div></div>
-            <span style="color:var(--pass);">75%</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="min-width:80px; color:var(--muted);">에너지·전력 (D)</span>
-            <div style="flex:1; height:8px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden;"><div style="width:85%; height:100%; background:var(--pass);"></div></div>
-            <span style="color:var(--pass);">85%</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="min-width:80px; color:var(--muted);">복합 로직 (E)</span>
-            <div style="flex:1; height:8px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden;"><div style="width:62%; height:100%; background:var(--fail);"></div></div>
-            <span style="color:var(--fail);">62%</span>
-          </div>
+        <div style="display:flex; flex-direction:column; gap:5px; font-size:11px;">
+          <div style="display:flex; align-items:center; gap:7px;"><span style="min-width:80px; color:var(--muted);">기본 상태 (A)</span><div style="flex:1; height:7px; background:var(--border); border-radius:4px; overflow:hidden;"><div style="width:90%; height:100%; background:var(--pass);"></div></div><span style="color:#1a7f37;">90%</span></div>
+          <div style="display:flex; align-items:center; gap:7px;"><span style="min-width:80px; color:var(--muted);">셀 전압 (B)</span><div style="flex:1; height:7px; background:var(--border); border-radius:4px; overflow:hidden;"><div style="width:67%; height:100%; background:var(--warn);"></div></div><span style="color:#9a5700;">67%</span></div>
+          <div style="display:flex; align-items:center; gap:7px;"><span style="min-width:80px; color:var(--muted);">모듈 온도 (C)</span><div style="flex:1; height:7px; background:var(--border); border-radius:4px; overflow:hidden;"><div style="width:75%; height:100%; background:var(--pass);"></div></div><span style="color:#1a7f37;">75%</span></div>
+          <div style="display:flex; align-items:center; gap:7px;"><span style="min-width:80px; color:var(--muted);">에너지·전력 (D)</span><div style="flex:1; height:7px; background:var(--border); border-radius:4px; overflow:hidden;"><div style="width:85%; height:100%; background:var(--pass);"></div></div><span style="color:#1a7f37;">85%</span></div>
+          <div style="display:flex; align-items:center; gap:7px;"><span style="min-width:80px; color:var(--muted);">복합 로직 (E)</span><div style="flex:1; height:7px; background:var(--border); border-radius:4px; overflow:hidden;"><div style="width:62%; height:100%; background:var(--fail);"></div></div><span style="color:#c0392b;">62%</span></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-       SLIDE 10 · SUMMARY
-  ═══════════════════════════════════════════════ -->
+  <!-- SLIDE 10 · WEB INTERFACE -->
   <div class="slide" id="slide-10">
+    <div class="slide-header">
+      <div class="slide-tag">신규 기능 C · Web Interface</div>
+      <h2>웹 기반 검증 결과 조회 · 분석</h2>
+    </div>
+
+    <div class="grid-2" style="flex:1; gap:18px;">
+      <div style="display:flex; flex-direction:column; gap:11px;">
+        <div class="card card-accent">
+          <h3 style="font-size:14px; margin-bottom:9px;">개요</h3>
+          <div style="font-size:13px; color:var(--muted); line-height:1.8;">
+            Flask 웹 앱으로 <strong style="color:var(--text);">브라우저/모바일에서 직접</strong> BMS 검증을 실행합니다.<br>
+            별도 설치 없이 환경·PID·날짜만 입력하면 HTML 리포트가 즉시 반환됩니다.
+          </div>
+        </div>
+
+        <div class="card card-primary">
+          <h3 style="font-size:14px; margin-bottom:9px;">입력 파라미터</h3>
+          <div style="display:flex; flex-direction:column; gap:7px; font-size:12px;">
+            <div style="display:flex; gap:9px; padding:7px 10px; background:var(--bg2); border-radius:8px; align-items:center;">
+              <span style="font-weight:700; color:var(--primary); min-width:80px;">서버 타입</span>
+              <span style="color:var(--muted);">BCP / D2 선택</span>
+            </div>
+            <div style="display:flex; gap:9px; padding:7px 10px; background:var(--bg2); border-radius:8px; align-items:center;">
+              <span style="font-weight:700; color:var(--primary); min-width:80px;">환경</span>
+              <span style="color:var(--muted);">STAG / PROD 선택</span>
+            </div>
+            <div style="display:flex; gap:9px; padding:7px 10px; background:var(--bg2); border-radius:8px; align-items:center;">
+              <span style="font-weight:700; color:var(--primary); min-width:80px;">PID</span>
+              <span style="color:var(--muted);">차량 식별 번호 입력 (예: 2793)</span>
+            </div>
+            <div style="display:flex; gap:9px; padding:7px 10px; background:var(--bg2); border-radius:8px; align-items:center;">
+              <span style="font-weight:700; color:var(--primary); min-width:80px;">날짜 범위</span>
+              <span style="color:var(--muted);">시작~종료 날짜 (최대 31일)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="font-size:14px; margin-bottom:9px;">처리 흐름</h3>
+          <div style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:500; flex-wrap:wrap;">
+            <span style="padding:4px 10px; background:var(--blue-lt); color:var(--primary); border-radius:8px;">S3 다운로드</span>
+            <span style="color:var(--muted);">→</span>
+            <span style="padding:4px 10px; background:var(--bg2); border-radius:8px;">BMS 검증</span>
+            <span style="color:var(--muted);">→</span>
+            <span style="padding:4px 10px; background:rgba(52,199,89,0.1); color:#1a7f37; border-radius:8px;">HTML 리포트 반환</span>
+          </div>
+          <div style="margin-top:10px; font-size:12px; color:var(--muted); line-height:1.75;">
+            gunicorn 2 workers · timeout 300s<br>
+            Docker 배포 지원 (docker-compose.yml)<br>
+            GitHub Codespaces 포트 포워딩으로 즉시 공유
+          </div>
+        </div>
+      </div>
+
+      <!-- right: web form mock -->
+      <div style="display:flex; align-items:center; justify-content:center;">
+        <div style="background:#0d1b2a; border-radius:20px; padding:28px 26px; width:100%; max-width:320px; box-shadow:0 12px 48px rgba(0,0,0,0.15);">
+          <div style="font-size:10px; font-weight:700; color:#00c4a0; letter-spacing:2px; margin-bottom:4px;">DART</div>
+          <div style="font-size:16px; font-weight:800; color:#e8f0fe; margin-bottom:2px;">BMS 데이터 검증</div>
+          <div style="font-size:11px; color:#8a9abb; margin-bottom:18px;">Data Assurance &amp; Reliability Tracker</div>
+
+          <div style="margin-bottom:12px;">
+            <div style="font-size:10px; font-weight:600; color:#8a9abb; margin-bottom:5px; letter-spacing:0.5px;">서버 타입</div>
+            <div style="display:flex; gap:7px;">
+              <div style="flex:1; padding:7px; border-radius:7px; border:1px solid #00c4a0; background:rgba(0,196,160,0.12); color:#00c4a0; font-size:12px; font-weight:600; text-align:center;">BCP</div>
+              <div style="flex:1; padding:7px; border-radius:7px; border:1px solid rgba(255,255,255,0.12); color:#8a9abb; font-size:12px; text-align:center;">D2</div>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <div style="font-size:10px; font-weight:600; color:#8a9abb; margin-bottom:5px; letter-spacing:0.5px;">환경</div>
+            <div style="display:flex; gap:7px;">
+              <div style="flex:1; padding:7px; border-radius:7px; border:1px solid #f5a623; background:rgba(245,166,35,0.12); color:#f5a623; font-size:12px; font-weight:600; text-align:center;">STAG</div>
+              <div style="flex:1; padding:7px; border-radius:7px; border:1px solid rgba(255,255,255,0.12); color:#8a9abb; font-size:12px; text-align:center;">PROD</div>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <div style="font-size:10px; font-weight:600; color:#8a9abb; margin-bottom:5px; letter-spacing:0.5px;">PID</div>
+            <div style="padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:#e8f0fe; font-size:13px;">2793</div>
+          </div>
+          <div style="display:flex; gap:8px; margin-bottom:16px;">
+            <div style="flex:1;">
+              <div style="font-size:10px; font-weight:600; color:#8a9abb; margin-bottom:5px; letter-spacing:0.5px;">시작 날짜</div>
+              <div style="padding:7px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:#e8f0fe; font-size:12px;">2025-04-01</div>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:10px; font-weight:600; color:#8a9abb; margin-bottom:5px; letter-spacing:0.5px;">종료 날짜</div>
+              <div style="padding:7px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:#e8f0fe; font-size:12px;">2025-04-07</div>
+            </div>
+          </div>
+          <div style="padding:11px; border-radius:9px; background:linear-gradient(135deg,#00c4a0,#0090c8); color:#fff; font-size:13px; font-weight:700; text-align:center;">검증 실행</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11 · SUMMARY -->
+  <div class="slide" id="slide-11">
     <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-      <div style="text-align:center; margin-bottom:36px;">
-        <div class="slide-tag" style="text-align:center; margin-bottom:12px;">Summary</div>
-        <h2 style="font-size:34px; margin-bottom:10px; background: linear-gradient(135deg, #ffffff, #7ab3f5, var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;">
-          DART — 핵심 가치 요약
-        </h2>
+      <div style="text-align:center; margin-bottom:32px;">
+        <div class="slide-tag" style="text-align:center; margin-bottom:10px;">Summary</div>
+        <h2 style="font-size:36px; margin-bottom:10px; color:var(--text); letter-spacing:-1px;">DART — 핵심 가치 요약</h2>
         <div style="font-size:15px; color:var(--muted);">전기차 BMS 데이터 품질을 자동·정확·빠르게 — 누구나 결과를 확인</div>
       </div>
 
-      <div class="grid-3" style="margin-bottom:28px;">
-        <div style="text-align:center; padding:20px 14px; background:rgba(0,196,160,0.07); border:1px solid rgba(0,196,160,0.2); border-radius:14px;">
-          <div style="font-size:28px; margin-bottom:8px;">🎯</div>
-          <div style="font-weight:700; margin-bottom:6px;">정교한 검증 로직</div>
+      <div class="grid-3" style="margin-bottom:26px;">
+        <div style="text-align:center; padding:20px 14px; background:var(--blue-lt); border:1px solid #bcd6f9; border-radius:16px;">
+          <div style="font-size:26px; margin-bottom:7px;">🎯</div>
+          <div style="font-weight:700; margin-bottom:5px; color:var(--text);">정교한 검증 로직</div>
           <div style="font-size:12px; color:var(--muted);">35개 항목·71개 조건<br>플릿·모델 예외 처리<br>수집 윈도우 상태 머신</div>
         </div>
-        <div style="text-align:center; padding:20px 14px; background:rgba(26,107,204,0.07); border:1px solid rgba(26,107,204,0.2); border-radius:14px;">
-          <div style="font-size:28px; margin-bottom:8px;">⚡</div>
-          <div style="font-weight:700; margin-bottom:6px;">고성능 처리</div>
+        <div style="text-align:center; padding:20px 14px; background:rgba(88,86,214,0.06); border:1px solid rgba(88,86,214,0.2); border-radius:16px;">
+          <div style="font-size:26px; margin-bottom:7px;">⚡</div>
+          <div style="font-weight:700; margin-bottom:5px; color:var(--text);">고성능 처리</div>
           <div style="font-size:12px; color:var(--muted);">NumPy 벡터화<br>S3 캐시, 선택적 컬럼 로딩<br>배치 100대 지원</div>
         </div>
-        <div style="text-align:center; padding:20px 14px; background:rgba(176,107,204,0.07); border:1px solid rgba(176,107,204,0.2); border-radius:14px;">
-          <div style="font-size:28px; margin-bottom:8px;">📋</div>
-          <div style="font-weight:700; margin-bottom:6px;">쉬운 결과 확인</div>
-          <div style="font-size:12px; color:var(--muted);">HTML 리포트 (신규)<br>결과 뷰어 대시보드 (신규)<br>비엔지니어도 즉시 확인</div>
+        <div style="text-align:center; padding:20px 14px; background:rgba(52,199,89,0.07); border:1px solid rgba(52,199,89,0.2); border-radius:16px;">
+          <div style="font-size:26px; margin-bottom:7px;">📋</div>
+          <div style="font-weight:700; margin-bottom:5px; color:var(--text);">쉬운 결과 확인</div>
+          <div style="font-size:12px; color:var(--muted);">HTML 리포트 (신규)<br>결과 뷰어 대시보드 (신규)<br>웹 인터페이스 (신규)</div>
         </div>
       </div>
 
       <div class="divider"></div>
 
-      <div style="display:flex; gap:28px; justify-content:center; padding:18px 0; flex-wrap:wrap;">
-        <div style="text-align:center;">
-          <div style="font-size:26px; font-weight:800; color:var(--accent);">35</div>
-          <div style="font-size:12px; color:var(--muted);">검증 항목</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:26px; font-weight:800; color:var(--accent);">71</div>
-          <div style="font-size:12px; color:var(--muted);">세부 조건</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:26px; font-weight:800; color:var(--accent);">317</div>
-          <div style="font-size:12px; color:var(--muted);">등록 차량 모델</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:26px; font-weight:800; color:var(--accent);">100+</div>
-          <div style="font-size:12px; color:var(--muted);">배치 처리 대수</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:26px; font-weight:800; color:var(--accent);">9</div>
-          <div style="font-size:12px; color:var(--muted);">개발 단계</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:26px; font-weight:800; color:var(--accent);">2</div>
-          <div style="font-size:12px; color:var(--muted);">신규 기능 (A+B)</div>
-        </div>
+      <div style="display:flex; gap:24px; justify-content:center; padding:16px 0; flex-wrap:wrap;">
+        <div style="text-align:center;"><div style="font-size:28px; font-weight:800; color:var(--primary); letter-spacing:-1px;">35</div><div style="font-size:11px; color:var(--muted);">검증 항목</div></div>
+        <div style="text-align:center;"><div style="font-size:28px; font-weight:800; color:var(--primary); letter-spacing:-1px;">71</div><div style="font-size:11px; color:var(--muted);">세부 조건</div></div>
+        <div style="text-align:center;"><div style="font-size:28px; font-weight:800; color:var(--primary); letter-spacing:-1px;">317</div><div style="font-size:11px; color:var(--muted);">등록 차량 모델</div></div>
+        <div style="text-align:center;"><div style="font-size:28px; font-weight:800; color:var(--primary); letter-spacing:-1px;">100+</div><div style="font-size:11px; color:var(--muted);">배치 처리 대수</div></div>
+        <div style="text-align:center;"><div style="font-size:28px; font-weight:800; color:var(--primary); letter-spacing:-1px;">9</div><div style="font-size:11px; color:var(--muted);">개발 단계</div></div>
+        <div style="text-align:center;"><div style="font-size:28px; font-weight:800; color:var(--primary); letter-spacing:-1px;">3</div><div style="font-size:11px; color:var(--muted);">신규 기능 (A+B+C)</div></div>
       </div>
 
-      <div style="text-align:center; margin-top:16px; font-size:13px; color:var(--muted);">
-        Python 3.13 · AWS S3 · pandas · NumPy · openpyxl · HTML Report · Result Viewer
+      <div style="text-align:center; margin-top:14px; font-size:13px; color:var(--muted);">
+        Python · AWS S3 · pandas · NumPy · openpyxl · Flask · HTML Report · Result Viewer · Web Interface
       </div>
     </div>
   </div>
 
 </div><!-- /slide-container -->
 
-<!-- NAV -->
 <nav class="nav">
   <button onclick="prevSlide()">← 이전</button>
-  <span class="page-info" id="page-info">1 / 10</span>
+  <span class="page-info" id="page-info">1 / 11</span>
   <div class="dots" id="dots"></div>
   <button onclick="nextSlide()">다음 →</button>
 </nav>
 <div class="key-hint">← → 키로 이동</div>
 
 <script>
-  const TOTAL = 10;
+  const TOTAL = 11;
   let current = 1;
 
-  // build dots
   const dotsEl = document.getElementById('dots');
   for (let i = 1; i <= TOTAL; i++) {
     const d = document.createElement('div');

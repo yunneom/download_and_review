@@ -111,10 +111,14 @@ def generate_html_report(results, df, vehicle_model, fleet, output_path, source_
         total_rows  = len(df)
         sample_rows = len(dfs)
 
+        date_range_str = ''
         if 'unix_time' in dfs.columns:
             try:
                 ts = pd.to_datetime(dfs['unix_time'], unit='s', utc=True).dt.tz_convert('Asia/Seoul')
                 x_vals = ts.dt.strftime('%H:%M:%S').tolist()
+                d_min = ts.min().strftime('%Y-%m-%d')
+                d_max = ts.max().strftime('%Y-%m-%d')
+                date_range_str = d_min if d_min == d_max else f'{d_min} ~ {d_max}'
             except Exception:
                 x_vals = dfs['unix_time'].astype(str).tolist()
         else:
@@ -137,6 +141,7 @@ def generate_html_report(results, df, vehicle_model, fleet, output_path, source_
             if not avail:
                 continue
             series = []
+            series_maxes = []
             for i, col in enumerate(avail):
                 vals = []
                 for v in dfs[col]:
@@ -145,8 +150,18 @@ def generate_html_report(results, df, vehicle_model, fleet, output_path, source_
                         vals.append(None if pd.isna(fv) else round(fv, 4))
                     except (TypeError, ValueError):
                         vals.append(None)
+                non_none = [v for v in vals if v is not None]
+                series_maxes.append(max(abs(v) for v in non_none) if non_none else 0)
                 series.append({'name': col, 'data': vals, 'color': CC[i % len(CC)]})
-            groups.append({'name': gname, 'unit': unit, 'series': series})
+            dual = False
+            if len(series) >= 2 and min(series_maxes) > 0:
+                ratio = max(series_maxes) / min(series_maxes)
+                if ratio > 10:
+                    dual = True
+                    primary_idx = series_maxes.index(max(series_maxes))
+                    for i, s in enumerate(series):
+                        s['axis'] = 'y' if i == primary_idx else 'y1'
+            groups.append({'name': gname, 'unit': unit, 'series': series, 'dual': dual})
 
         if groups:
             all_data = _json.dumps({'x': x_vals, 'groups': groups}, ensure_ascii=False)
@@ -192,11 +207,16 @@ def generate_html_report(results, df, vehicle_model, fleet, output_path, source_
                     f'</details>'
                 )
 
+            date_label = (
+                f' &nbsp;·&nbsp; <span style="color:#7ab3f5;">&#128197; {date_range_str} KST</span>'
+                if date_range_str else ''
+            )
             graph_html = (
                 '<details class="graph-section" open>'
                 '<summary class="graph-sec-hdr">&#128202; 데이터 그래프 '
                 f'<span style="font-size:11px;color:#8a9abb;font-weight:400;">'
-                f'(샘플 {sample_rows:,}행 / 전체 {total_rows:,}행)</span></summary>'
+                f'(샘플 {sample_rows:,}행 / 전체 {total_rows:,}행){date_label}'
+                f'</span></summary>'
                 f'<div class="graph-body">{panels_html}</div>'
                 '</details>'
             )
@@ -217,7 +237,8 @@ def generate_html_report(results, df, vehicle_model, fleet, output_path, source_
     },
     scales:{
       x:{ticks:{color:'#4a6a8a',maxTicksLimit:14,maxRotation:0},
-         grid:{color:'rgba(255,255,255,0.04)'}},
+         grid:{color:'rgba(255,255,255,0.04)'},
+         title:{display:true,text:'시간 (KST)',color:'#4a6a8a',font:{size:11}}},
       y:{ticks:{color:'#8a9abb'},grid:{color:'rgba(255,255,255,0.07)'}}
     }
   };
@@ -225,12 +246,21 @@ def generate_html_report(results, df, vehicle_model, fleet, output_path, source_
     var canvas = document.getElementById('gchart-'+gi);
     if(!canvas) return;
     var datasets = g.series.map(function(s){
-      return {label:s.name,data:s.data,borderColor:s.color,
-              backgroundColor:s.color+'18',borderWidth:1.5,
-              pointRadius:0,fill:false,tension:0.2,spanGaps:true};
+      var ds = {label:s.name,data:s.data,borderColor:s.color,
+                backgroundColor:s.color+'18',borderWidth:1.5,
+                pointRadius:0,fill:false,tension:0.2,spanGaps:true};
+      if(g.dual && s.axis) ds.yAxisID = s.axis;
+      return ds;
     });
     var opts = JSON.parse(JSON.stringify(base));
     if(g.unit) opts.scales.y.title={display:true,text:g.unit,color:'#8a9abb'};
+    if(g.dual){
+      var s1 = g.series.find(function(s){return s.axis==='y1';});
+      opts.scales.y1={type:'linear',position:'right',
+        ticks:{color:s1?s1.color:'#f5a623'},
+        grid:{drawOnChartArea:false},
+        title:{display:true,text:s1?s1.name:'',color:s1?s1.color:'#f5a623',font:{size:10}}};
+    }
     var chart = new Chart(canvas,{type:'line',data:{labels:GDATA.x,datasets:datasets},options:opts});
     canvas.addEventListener('dblclick',function(){chart.resetZoom();});
   });

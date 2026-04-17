@@ -5,154 +5,199 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DART — 개발 배경 & 바이브코딩 스토리</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --primary: #1a6bcc;
-    --accent:  #00c4a0;
-    --bg:      #0d1b2a;
-    --bg2:     #132236;
-    --card:    #1a2e45;
-    --text:    #e8f0fe;
-    --muted:   #8a9abb;
-    --pass:    #00c4a0;
-    --fail:    #ff5a5a;
-    --warn:    #f5a623;
+    --blue:    #0071e3;
+    --blue-lt: #e8f0fd;
+    --green:   #30d158;
+    --orange:  #ff9f0a;
+    --red:     #ff453a;
+    --purple:  #bf5af2;
+    --bg:      #ffffff;
+    --bg2:     #f5f5f7;
+    --bg3:     #fafafa;
+    --text:    #1d1d1f;
+    --sub:     #6e6e73;
+    --border:  #d2d2d7;
+    --card-shadow: 0 2px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
   }
 
   body {
-    font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg);
     color: var(--text);
-    line-height: 1.7;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
   }
 
   /* ── HEADER ── */
   .site-header {
-    background: linear-gradient(135deg, #0d1b2a 0%, #132236 60%, rgba(0,196,160,0.06) 100%);
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-    padding: 48px 0 36px;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 80px 28px 64px;
     text-align: center;
   }
   .eyebrow {
-    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
-    color: var(--accent); margin-bottom: 14px;
+    display: inline-block;
+    font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--blue); margin-bottom: 20px;
+    background: var(--blue-lt); padding: 5px 14px; border-radius: 20px;
   }
   .site-header h1 {
-    font-size: 38px; font-weight: 900; line-height: 1.15;
-    background: linear-gradient(135deg, #ffffff, #7ab3f5, var(--accent));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    margin-bottom: 12px;
+    font-size: 52px; font-weight: 800; line-height: 1.1;
+    color: var(--text); margin-bottom: 18px; letter-spacing: -1.5px;
   }
+  .site-header h1 span { color: var(--blue); }
   .site-header .lead {
-    font-size: 16px; color: var(--muted); max-width: 620px; margin: 0 auto;
+    font-size: 17px; color: var(--sub); max-width: 560px; margin: 0 auto;
+    font-weight: 400; line-height: 1.7;
   }
   .header-tags {
-    display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap;
+    display: flex; gap: 8px; justify-content: center; margin-top: 28px; flex-wrap: wrap;
   }
   .tag {
-    font-size: 12px; padding: 4px 14px; border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.12); color: var(--muted);
+    font-size: 12px; font-weight: 500; padding: 5px 14px; border-radius: 20px;
+    border: 1px solid var(--border); color: var(--sub); background: var(--bg2);
   }
-  .tag.accent { border-color: var(--accent); color: var(--accent); }
-  .tag.blue   { border-color: #7ab3f5;       color: #7ab3f5; }
+  .tag.blue   { border-color: #bcd6f9; color: var(--blue); background: var(--blue-lt); }
+  .tag.green  { border-color: #b6f0ca; color: #1a7f37; background: #edfff3; }
 
   /* ── LAYOUT ── */
-  .container { max-width: 860px; margin: 0 auto; padding: 0 28px; }
-
-  section { padding: 52px 0 0; }
-  section:last-child { padding-bottom: 72px; }
+  .container { max-width: 840px; margin: 0 auto; padding: 0 28px; }
+  section { padding: 72px 0 0; }
+  section:last-child { padding-bottom: 96px; }
 
   .section-label {
-    font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase;
-    color: var(--accent); margin-bottom: 10px;
+    font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--blue); margin-bottom: 10px;
   }
   h2 {
-    font-size: 24px; font-weight: 800; margin-bottom: 20px;
-    border-left: 3px solid var(--accent); padding-left: 14px;
+    font-size: 32px; font-weight: 700; margin-bottom: 24px;
+    color: var(--text); letter-spacing: -0.5px;
   }
-  p { color: var(--muted); margin-bottom: 14px; font-size: 14.5px; }
-  p strong { color: var(--text); }
+  h3 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+  p { color: var(--sub); margin-bottom: 16px; font-size: 15px; line-height: 1.75; }
+  p strong { color: var(--text); font-weight: 600; }
+  code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px;
+         background: var(--bg2); padding: 2px 7px; border-radius: 5px; color: var(--blue); }
 
   /* ── CARDS ── */
   .card {
-    background: var(--bg2); border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px; padding: 22px 24px; margin-bottom: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px 28px;
+    margin-bottom: 16px;
+    box-shadow: var(--card-shadow);
+    transition: box-shadow 0.2s;
   }
-  .card h3 { font-size: 15px; margin-bottom: 10px; color: var(--text); }
-  .card p  { font-size: 13.5px; margin-bottom: 0; }
+  .card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+  .card h3 { font-size: 15px; margin-bottom: 10px; }
+  .card p  { font-size: 14px; margin-bottom: 0; }
 
-  .card-accent { border-color: rgba(0,196,160,0.25); }
-  .card-blue   { border-color: rgba(26,107,204,0.3); }
-  .card-warn   { border-color: rgba(245,166,35,0.25); }
+  .card-blue   { border-top: 3px solid var(--blue); }
+  .card-green  { border-top: 3px solid var(--green); }
+  .card-orange { border-top: 3px solid var(--orange); }
+  .card-purple { border-top: 3px solid var(--purple); }
 
   /* ── GRID ── */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
   @media (max-width: 640px) {
     .grid-2, .grid-3 { grid-template-columns: 1fr; }
-    .site-header h1 { font-size: 26px; }
+    .site-header h1 { font-size: 32px; }
+    h2 { font-size: 24px; }
   }
 
   /* ── TIMELINE ── */
-  .timeline { position: relative; padding-left: 28px; }
+  .timeline { position: relative; padding-left: 32px; }
   .timeline::before {
-    content: ''; position: absolute; left: 7px; top: 6px; bottom: 6px;
-    width: 2px; background: rgba(0,196,160,0.25);
+    content: ''; position: absolute; left: 9px; top: 8px; bottom: 8px;
+    width: 2px; background: var(--border);
   }
-  .tl-item { position: relative; margin-bottom: 28px; }
+  .tl-item { position: relative; margin-bottom: 32px; }
   .tl-item::before {
-    content: ''; position: absolute; left: -24px; top: 6px;
-    width: 10px; height: 10px; border-radius: 50%;
-    background: var(--accent); border: 2px solid var(--bg2);
+    content: ''; position: absolute; left: -26px; top: 7px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--blue); border: 3px solid #fff;
+    box-shadow: 0 0 0 2px var(--blue);
   }
-  .tl-label { font-size: 11px; color: var(--accent); letter-spacing: 1px; margin-bottom: 4px; }
-  .tl-item h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
-  .tl-item p  { font-size: 13px; margin-bottom: 0; }
+  .tl-label { font-size: 11px; font-weight: 600; color: var(--blue);
+              letter-spacing: 1px; margin-bottom: 5px; text-transform: uppercase; }
+  .tl-item h4 { font-size: 15px; font-weight: 600; margin-bottom: 7px; color: var(--text); }
+  .tl-item p  { font-size: 13.5px; margin-bottom: 0; }
 
   /* ── QUOTE ── */
   .quote {
-    border-left: 3px solid var(--warn); background: rgba(245,166,35,0.05);
-    border-radius: 0 10px 10px 0; padding: 16px 20px; margin: 24px 0;
-    font-size: 14px; color: var(--text); font-style: italic; line-height: 1.7;
+    border-left: 3px solid var(--blue);
+    background: var(--blue-lt);
+    border-radius: 0 14px 14px 0;
+    padding: 18px 22px; margin: 28px 0;
+    font-size: 14.5px; color: var(--text);
+    font-style: italic; line-height: 1.75;
   }
 
   /* ── STAT ROW ── */
   .stat-row {
-    display: flex; gap: 20px; flex-wrap: wrap;
-    background: var(--bg2); border-radius: 12px; padding: 20px 24px;
-    border: 1px solid rgba(255,255,255,0.07);
+    display: flex; gap: 0; flex-wrap: wrap;
+    background: var(--bg2); border-radius: 18px;
+    border: 1px solid var(--border);
+    overflow: hidden;
   }
-  .stat-item { text-align: center; flex: 1; min-width: 80px; }
-  .stat-item .num { font-size: 28px; font-weight: 800; color: var(--accent); }
-  .stat-item .lbl { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .stat-item {
+    text-align: center; flex: 1; min-width: 80px;
+    padding: 24px 16px;
+    border-right: 1px solid var(--border);
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-item .num { font-size: 30px; font-weight: 800; color: var(--blue); letter-spacing: -1px; }
+  .stat-item .lbl { font-size: 11px; color: var(--sub); margin-top: 4px; font-weight: 500; }
 
   /* ── CODE BLOCK ── */
   .code-block {
-    background: #0a1520; border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 8px; padding: 14px 16px; font-family: 'Consolas', monospace;
-    font-size: 12px; color: #c9d7f0; overflow-x: auto; margin: 12px 0;
+    background: #1c1c1e;
+    border-radius: 14px;
+    padding: 18px 20px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12.5px; color: #e5e5ea; overflow-x: auto; margin: 16px 0;
+    line-height: 1.8;
   }
-  .code-block .cm { color: #5a7a6a; }
+  .code-block .cm { color: #636366; }
+  .code-block .kw { color: #ff9f0a; }
+  .code-block .fn { color: #64d2ff; }
+  .code-block .st { color: #30d158; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    background: var(--bg2); border-radius: 18px; padding: 20px 26px;
+    border: 1px solid var(--border);
+  }
+  .callout-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--blue); margin-bottom: 10px;
+  }
+  .callout p { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 0; }
 
   /* ── BACK LINK ── */
   .back-link {
     display: inline-flex; align-items: center; gap: 8px;
-    font-size: 13px; color: var(--muted); text-decoration: none;
-    padding: 8px 0; border-bottom: 1px solid transparent;
-    transition: color 0.2s, border-color 0.2s;
+    font-size: 14px; font-weight: 500; color: var(--blue); text-decoration: none;
+    padding: 10px 20px; border-radius: 20px; border: 1px solid #bcd6f9;
+    background: var(--blue-lt); transition: background 0.2s;
   }
-  .back-link:hover { color: var(--accent); border-color: var(--accent); }
+  .back-link:hover { background: #d4e7fc; }
 
   /* ── DIVIDER ── */
-  .divider { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 20px 0; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
 
   /* ── PRINT ── */
   @media print {
-    body { background: #fff; color: #000; }
-    .card { border: 1px solid #ccc; }
-    .site-header { background: none; border-bottom: 2px solid #ccc; }
-    h2 { border-color: #007755; }
+    .site-header { border-bottom: 2px solid #000; }
+    .card { box-shadow: none; border: 1px solid #ccc; }
+    .back-link { display: none; }
   }
 </style>
 </head>
@@ -161,13 +206,13 @@
 <!-- ── HEADER ── -->
 <header class="site-header">
   <div class="eyebrow">DART · Data Assurance &amp; Reliability Tracker</div>
-  <h1>왜 만들었고, 어떻게 만들었나</h1>
+  <h1>왜 만들었고,<br><span>어떻게</span> 만들었나</h1>
   <p class="lead">
     전기차 BMS 데이터 품질 검증 도구 DART의 개발 배경과<br>
     AI와 함께한 바이브코딩(Vibe Coding) 개발 과정
   </p>
   <div class="header-tags">
-    <span class="tag accent">바이브코딩</span>
+    <span class="tag blue">바이브코딩</span>
     <span class="tag blue">AI-Assisted Dev</span>
     <span class="tag">Claude Sonnet</span>
     <span class="tag">Python · PyQt5</span>
@@ -184,18 +229,18 @@
 
     <p>
       EV(전기차) 관리 서비스 운영에서 <strong>BMS(Battery Management System) 데이터</strong>는
-      차량 상태 모니터링 및 분석의 핵심이자 기초입니다. 그런데 AWS S3에 매일 적재되는 수십~수백 대 분량의 Parquet 파일이
+      차량 상태 모니터링 및 분석의 핵심이자 기초입니다. AWS S3에 매일 적재되는 수십~수백 대 분량의 Parquet 파일이
       쌓이면서, 데이터 품질을 사람이 직접 눈으로 확인하는 방식은 한계에 부딪혔습니다.
     </p>
 
-    <div class="grid-2" style="margin-bottom:20px;">
-      <div class="card card-warn">
-        <h3>🔴 기존 방식의 문제</h3>
+    <div class="grid-2" style="margin-bottom:24px;">
+      <div class="card card-orange">
+        <h3>기존 방식의 문제</h3>
         <p>수작업으로 CSV 열어 값 확인 또는 그래프 눈으로 확인 → 오류 발견 시 이미 수일치 데이터가 쌓인 상태.<br>
-        Fleet마다 허용 범위 및 데이터 파싱 규칙 다름 → 차량 별로 해석이 달라짐.</p>
+        Fleet마다 허용 범위 및 데이터 파싱 규칙 다름 → 차량별로 해석이 달라짐.</p>
       </div>
-      <div class="card card-accent">
-        <h3>🟢 필요했던 것</h3>
+      <div class="card card-green">
+        <h3>필요했던 것</h3>
         <p>S3에서 자동 취득 → 35개 항목 일괄 검증 → 결과 리포트 생성까지<br>
         <strong>클릭 한 번으로 처리</strong>되는 도구. 담당자가 아닌 누구나 결과를 바로 읽을 수 있어야 함.</p>
       </div>
@@ -211,7 +256,7 @@
       자동화 도구가 반드시 필요했습니다. 그리고 그 결과물이 DART입니다.
     </p>
 
-    <div class="stat-row" style="margin-top:24px;">
+    <div class="stat-row" style="margin-top:28px;">
       <div class="stat-item"><div class="num">35</div><div class="lbl">검증 항목</div></div>
       <div class="stat-item"><div class="num">71</div><div class="lbl">세부 검사 조건</div></div>
       <div class="stat-item"><div class="num">4</div><div class="lbl">지원 Fleet</div></div>
@@ -244,7 +289,7 @@
 
     <hr class="divider">
 
-    <h3 style="font-size:16px; margin-bottom:16px; color:var(--text);">개발 진행 타임라인</h3>
+    <h3 style="font-size:18px; margin-bottom:20px; letter-spacing:-0.3px;">개발 진행 타임라인</h3>
     <div class="timeline">
       <div class="tl-item">
         <div class="tl-label">Phase 1–2</div>
@@ -282,14 +327,14 @@
 
     <hr class="divider">
 
-    <h3 style="font-size:16px; margin-bottom:16px; color:var(--text);">바이브코딩이란 무엇인가</h3>
+    <h3 style="font-size:18px; margin-bottom:20px; letter-spacing:-0.3px;">바이브코딩이란 무엇인가</h3>
     <div class="grid-2">
-      <div class="card card-blue">
+      <div class="card card-orange">
         <h3>기존 개발 방식</h3>
         <p>기획서 → 설계 문서 → 스프린트 → 코드 리뷰 → QA → 배포.<br>
         각 단계에서 컨텍스트 전달 비용 발생. 아이디어→실제 코드까지 수 일~수 주.</p>
       </div>
-      <div class="card card-accent">
+      <div class="card card-blue">
         <h3>바이브코딩 방식</h3>
         <p>아이디어를 말로 설명 → AI가 즉시 코드 생성 → 개발자가 검토·방향 조정.<br>
         <strong>같은 날 안에 새 기능을 프로덕션 코드 수준으로 작성</strong>하는 것이 가능.</p>
@@ -308,7 +353,7 @@
     <div class="section-label">Key Decisions</div>
     <h2>핵심 설계 결정 3가지</h2>
 
-    <div class="card card-accent" style="margin-bottom:14px;">
+    <div class="card card-blue" style="margin-bottom:14px;">
       <h3>① 규칙을 코드로 — 문서가 아닌 함수로</h3>
       <p>
         기존에는 검증 기준이 엑셀 문서에 텍스트로만 존재했습니다.
@@ -317,7 +362,7 @@
       </p>
     </div>
 
-    <div class="card card-blue" style="margin-bottom:14px;">
+    <div class="card card-purple" style="margin-bottom:14px;">
       <h3>② Fleet/차종 예외는 데이터 기반 자동 적용</h3>
       <p>
         VWGKALRT, HKMC, GM, Tesla는 BMS 구조가 다릅니다.
@@ -326,7 +371,7 @@
       </p>
     </div>
 
-    <div class="card" style="margin-bottom:14px;">
+    <div class="card card-green" style="margin-bottom:14px;">
       <h3>③ 결과는 누구나 읽을 수 있어야 한다</h3>
       <p>
         엔지니어가 아닌 팀원도 검증 결과를 확인할 수 있도록, Excel 외에
@@ -357,13 +402,13 @@
       </div>
     </div>
 
-    <div class="code-block" style="margin-top:16px;">
+    <div class="code-block" style="margin-top:20px;">
 <span class="cm"># 핵심 검증 흐름 (단순화)</span>
-validator = BMSDataValidator()
-results   = validator.validate_file("MACRIOT_2793.parquet")
+<span class="kw">validator</span> = BMSDataValidator()
+<span class="kw">results</span>   = validator.validate_file(<span class="st">"MACRIOT_2793.parquet"</span>)
 
-validator.generate_report("result.xlsx")         <span class="cm"># Excel</span>
-validator.generate_html_report("result.html")    <span class="cm"># 브라우저 리포트</span>
+validator.generate_report(<span class="st">"result.xlsx"</span>)         <span class="cm"># Excel</span>
+validator.generate_html_report(<span class="st">"result.html"</span>)    <span class="cm"># 브라우저 리포트</span>
     </div>
   </section>
 
@@ -386,142 +431,19 @@ validator.generate_html_report("result.html")    <span class="cm"># 브라우저
       AI가 코드를 쓰고 개발자가 도메인 판단을 한다 — 이 조합이 DART를 만든 방식입니다.
     </p>
 
-    <div class="stat-row" style="margin-top:20px;">
-      <div class="stat-item"><div class="num" style="color:#7ab3f5;">9</div><div class="lbl">개발 단계 (Phase)</div></div>
-      <div class="stat-item"><div class="num" style="color:var(--accent);">2,300+</div><div class="lbl">코드 라인 (검증 모듈)</div></div>
-      <div class="stat-item"><div class="num" style="color:#c07aee;">2</div><div class="lbl">신규 HTML 기능</div></div>
+    <div class="stat-row" style="margin-top:24px;">
+      <div class="stat-item"><div class="num">9</div><div class="lbl">개발 단계 (Phase)</div></div>
+      <div class="stat-item"><div class="num">2,300+</div><div class="lbl">코드 라인 (검증 모듈)</div></div>
+      <div class="stat-item"><div class="num">2</div><div class="lbl">신규 HTML 기능</div></div>
     </div>
 
-    <p style="margin-top:24px; text-align:right; font-size:12px;">
-      <a class="back-link" href="index.html">← 발표 슬라이드로 돌아가기</a>
-    </p>
-  </section>
-
-  <!-- ── 6. 발표 설명 (Presenter Notes) ── -->
-  <section id="notes">
-    <div class="section-label">Presenter Notes</div>
-    <h2>발표 설명 — 핵심 메시지</h2>
-
-    <p style="margin-bottom:20px;">
-      아래는 발표 시 각 포인트별로 전달할 핵심 내용입니다.
-      슬라이드 순서와 맞춰 활용하세요.
-    </p>
-
-    <!-- Point 1 -->
-    <div class="card card-accent" style="margin-bottom:14px;">
-      <div style="display:flex; gap:14px; align-items:flex-start;">
-        <div style="font-size:22px; font-weight:900; color:var(--accent); min-width:32px;">1</div>
-        <div>
-          <h3 style="margin-bottom:8px;">도구가 없었다</h3>
-          <p>
-            전기차 관련 서비스 운영팀에서 BMS(Battery Management System) 데이터를 받아보면
-            <strong>품질을 검증하는 도구 자체가 없었습니다.</strong><br>
-            데이터를 S3에서 내려받아도 이상 여부를 수작업으로 확인해야 했고,
-            기준도 문서마다 달랐습니다.<br><br>
-            DART는 이 문제를 해결하기 위해 만들었습니다.
-            AWS S3에서 데이터를 받아서 <strong>실행만 하면 검증 결과가 나오는 구조</strong>를
-            목표로 잡았습니다.
-          </p>
-        </div>
-      </div>
+    <div class="callout" style="margin-top:28px;">
+      <div class="callout-label">Summary</div>
+      <p>"데이터 품질 도구가 없어서 만들었고, AI와 함께 만들었습니다.<br>
+      규칙은 코드가 되었고, 결과는 누구나 볼 수 있게 됐습니다."</p>
     </div>
 
-    <!-- Point 2 -->
-    <div class="card card-blue" style="margin-bottom:14px;">
-      <div style="display:flex; gap:14px; align-items:flex-start;">
-        <div style="font-size:22px; font-weight:900; color:#7ab3f5; min-width:32px;">2</div>
-        <div>
-          <h3 style="margin-bottom:8px;">개발하면서 규칙이 늘었다</h3>
-          <p>
-            처음에는 기본적인 범위 검사 몇 개로 시작했습니다.
-            실제 데이터를 보면서 <strong>35개 항목, 71개 조건</strong>까지 늘어났습니다.<br>
-            검증 규칙이 코드로 명문화되자, 팀 내에서 "이 항목도 검사해야 하지 않나?"
-            하는 논의가 생기고 자연스럽게 범위가 확장됐습니다.
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Point 3 -->
-    <div class="card" style="margin-bottom:14px;">
-      <div style="display:flex; gap:14px; align-items:flex-start;">
-        <div style="font-size:22px; font-weight:900; color:var(--muted); min-width:32px;">3</div>
-        <div>
-          <h3 style="margin-bottom:8px;">차량마다 데이터가 다르다</h3>
-          <p>
-            도구를 쓰면서 알게 된 것 — <strong>같은 BMS 컬럼이라도 Fleet마다 값의 의미와 허용 범위가 다릅니다.</strong><br>
-            VWGKALRT는 방전 전류량이 음수로 기록됩니다. RAY는 누적 전력량 컬럼이 없습니다.
-            Bolt 2017은 주행거리 컬럼이 없습니다.<br><br>
-            이 예외들을 코드로 처리하지 않으면 정상 데이터를 FAIL로 판정하는 오탐이 발생합니다.
-            <strong>vehicle_master.json으로 차량을 자동 식별해 Fleet별 규칙을 자동 선택</strong>하는
-            구조가 이래서 필요했습니다.
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Point 4 -->
-    <div class="card" style="margin-bottom:14px; border-color:rgba(245,166,35,0.3);">
-      <div style="display:flex; gap:14px; align-items:flex-start;">
-        <div style="font-size:22px; font-weight:900; color:var(--warn); min-width:32px;">4</div>
-        <div>
-          <h3 style="margin-bottom:8px;">바이브코딩(Vibe Coding) — 2025년의 새로운 개발 방식</h3>
-          <p>
-            DART는 <strong>AI와 대화하며 코드를 만들어나가는 바이브코딩 방식</strong>으로 개발됐습니다.<br>
-            기획서도, 스프린트 일정도 없이 — "이 기능이 필요해"를 AI에게 말하면
-            AI가 코드를 작성하고 개발자는 방향을 잡는 역할을 합니다.
-          </p>
-          <div class="quote" style="margin-top:12px; margin-bottom:0;">
-            "AI(클로드)와 Align — 대화 → 코드 확장 → 검토 → 반복.<br>
-            이것이 바이브코딩입니다. 기존 개발보다 훨씬 빠르게 아이디어가 작동하는 코드가 됩니다.<br>
-            2025년 현재 AI 도구의 가장 실용적인 활용 방식 중 하나입니다."
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Point 5: Code example -->
-    <div class="card" style="margin-bottom:14px;">
-      <div style="display:flex; gap:14px; align-items:flex-start;">
-        <div style="font-size:22px; font-weight:900; color:var(--accent); min-width:32px;">5</div>
-        <div style="flex:1;">
-          <h3 style="margin-bottom:8px;">실제 예시 — AI가 작성한 핵심 로직</h3>
-          <p style="margin-bottom:10px;">
-            가장 까다로운 로직 중 하나인 <strong>수집 구간 자동 선별 함수</strong>도
-            바이브코딩으로 만들었습니다.<br>
-            "시동 OFF 후 충전·슬립 대기 구간 데이터만 골라야 해"라는 한 마디에서 시작됐습니다.
-          </p>
-          <div class="code-block">
-<span class="cm"># AI가 작성한 핵심 함수 (요약)</span>
-def _get_collection_window_mask(self):
-    <span class="cm">"""IGN OFF 후 충전·슬립 대기 구간 행만 True로 마스킹"""</span>
-    ign   = self.df['ignit_status']
-    relay = self.df['main_relay_status']
-
-    <span class="cm"># IGN 0→0 유지, relay=1 (충전/슬립 대기) 구간 선택</span>
-    mask  = (ign == 0) &amp; (relay == 1)
-    return mask  <span class="cm"># 항목 16, 19, 20에 적용</span>
-          </div>
-          <p style="margin-top:8px; font-size:13px;">
-            이 함수 하나로 <strong>주행 중 오탐 방지</strong>와
-            <strong>수집 구간 정밀 검증</strong>이 동시에 해결됩니다.
-            AI가 코드를 쓰고 개발자가 도메인 검증을 했습니다.
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <hr class="divider">
-
-    <div style="background:rgba(0,196,160,0.05); border:1px solid rgba(0,196,160,0.2); border-radius:12px; padding:18px 22px;">
-      <div style="font-size:11px; color:var(--accent); letter-spacing:1px; margin-bottom:8px;">ONE-LINER SUMMARY</div>
-      <p style="font-size:15px; color:var(--text); font-weight:600; margin-bottom:0;">
-        "데이터 품질 도구가 없어서 만들었고, AI와 함께 만들었습니다.<br>
-        규칙은 코드가 되었고, 결과는 누구나 볼 수 있게 됐습니다."
-      </p>
-    </div>
-
-    <p style="margin-top:24px; text-align:right; font-size:12px;">
+    <p style="margin-top:32px; text-align:right; font-size:12px;">
       <a class="back-link" href="index.html">← 발표 슬라이드로 돌아가기</a>
     </p>
   </section>
