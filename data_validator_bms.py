@@ -1720,18 +1720,28 @@ class BMSDataValidator:
             
             first_idx = valid_rows.index[0]
             last_idx = valid_rows.index[-1]
-            
-            # 시작 상태
-            ign_start = evt_df.loc[first_idx, 'ignit_status']
-            chg_start = str(evt_df.loc[first_idx, 'chg_conr_status_list'])
+
+            # 시작 상태 — relay/chg NaN이면 이 이벤트 스킵
+            ign_start   = evt_df.loc[first_idx, 'ignit_status']
             relay_start = evt_df.loc[first_idx, 'main_relay_status']
-            chg_val_start = int(chg_start.split('|')[0]) if '|' in chg_start else int(float(chg_start))
+            chg_start   = str(evt_df.loc[first_idx, 'chg_conr_status_list'])
+            if pd.isna(relay_start) or pd.isna(ign_start):
+                continue
+            try:
+                chg_val_start = int(chg_start.split('|')[0]) if '|' in chg_start else int(float(chg_start))
+            except (ValueError, TypeError):
+                continue
             start_tuple = (int(ign_start), chg_val_start, int(relay_start))
-            
-            # 종료 상태
+
+            # 종료 상태 — NaN이면 이 이벤트 스킵
             ign_end = evt_df.loc[last_idx, 'ignit_status']
             chg_end = str(evt_df.loc[last_idx, 'chg_conr_status_list'])
-            chg_val_end = int(chg_end.split('|')[0]) if '|' in chg_end else int(float(chg_end))
+            if pd.isna(ign_end):
+                continue
+            try:
+                chg_val_end = int(chg_end.split('|')[0]) if '|' in chg_end else int(float(chg_end))
+            except (ValueError, TypeError):
+                continue
             end_tuple = (int(ign_end), chg_val_end)
             
             start_valid = start_tuple in valid_start_tuples
