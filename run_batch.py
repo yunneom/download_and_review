@@ -95,10 +95,28 @@ def main():
                         help="기존 결과 parquet 파일로 분석만 수행")
     parser.add_argument("--output-dir", default=".",
                         help="결과/리포트 저장 디렉터리 (기본: 현재 디렉터리)")
-    args = parser.parse_args()
+    args  = parser.parse_args()
+    ts    = datetime.now().strftime("%Y%m%d_%H%M%S")
+    today = datetime.now().strftime("%Y-%m-%d")
 
-    ts         = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = Path(args.output_dir).resolve()
+    # ── 저장 경로 자동 결정 ──────────────────────────────────────
+    # 기존 다운로드 구조: downloads/{오늘날짜}/{pid}/
+    # --output-dir 미지정 시 동일 구조로 자동 세팅
+    base_downloads = Path(os.getcwd()) / "downloads" / today
+
+    if args.output_dir != ".":
+        # 명시적으로 지정한 경우 그대로 사용
+        output_dir = Path(args.output_dir).resolve()
+    elif args.pids and len(args.pids) == 1:
+        # PID 1개: downloads/{오늘날짜}/{pid}/
+        output_dir = base_downloads / str(args.pids[0])
+    elif args.pids:
+        # PID 여러 개: downloads/{오늘날짜}/batch/
+        output_dir = base_downloads / "batch"
+    else:
+        # 전체 스캔: downloads/{오늘날짜}/batch/
+        output_dir = base_downloads / "batch"
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     result_path = str(output_dir / f"batch_{ts}.parquet")
