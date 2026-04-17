@@ -166,11 +166,15 @@ class DataValidationDialog(QDialog):
         btn_layout.addStretch()
         layout.addLayout(btn_layout)
 
-        # 검증 결과 테이블
-        from PyQt5.QtWidgets import QTableWidget, QHeaderView
+        # 원본 데이터 에러 강조 테이블
+        from PyQt5.QtWidgets import QTableWidget, QHeaderView, QLabel
+        self.result_label = QLabel("에러 발생 행 (규칙 위반 셀 강조 표시)")
+        self.result_label.setStyleSheet("font-weight: bold; color: #c0392b; padding: 4px 0;")
+        self.result_label.hide()
+        layout.addWidget(self.result_label)
+
         self.result_table = QTableWidget()
-        self.result_table.setColumnCount(7)
-        self.result_table.setHorizontalHeaderLabels(['ID', 'Column', 'Check', 'Criteria', 'Status', 'Fail Count', 'Details'])
+        self.result_table.setColumnCount(0)
         self.result_table.horizontalHeader().setStretchLastSection(True)
         self.result_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.result_table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -309,7 +313,17 @@ main_relay_status,valid_values=[0;1],메인 릴레이 상태"""
             
             QMessageBox.information(self, "검증 완료", msg)
 
-            self._show_results_table(results)
+            # 원본 데이터 로드 → 에러 셀 탐지 → 강조 표시
+            try:
+                raw_df = pd.read_parquet(self.csv_file) if file_ext == '.parquet' else pd.read_csv(self.csv_file)
+                error_mask = self._compute_error_mask(raw_df, rules)
+                self._show_raw_data_with_errors(raw_df, error_mask, rules)
+                xlsx_path = self._export_highlighted_xlsx(raw_df, error_mask, base_name, timestamp)
+                if xlsx_path:
+                    msg2 = f"에러 셀 강조 XLSX 저장 완료:\n{xlsx_path}"
+                    QMessageBox.information(self, "XLSX 내보내기", msg2)
+            except Exception as e2:
+                QMessageBox.warning(self, "에러 강조 실패", f"에러 강조 처리 중 문제 발생:\n{str(e2)}")
 
             # 결과 파일 열기 옵션
             reply = QMessageBox.question(
@@ -324,41 +338,119 @@ main_relay_status,valid_values=[0;1],메인 릴레이 상태"""
         except Exception as e:
             QMessageBox.critical(self, "오류", f"검증 실패:\n{str(e)}")
 
-    def _show_results_table(self, results):
-        """검증 결과를 상태별 색상으로 테이블에 표시"""
+    def _compute_error_mask(self, df, rules):
+        """규칙에 따라 에러 셀 위치를 Boolean DataFrame으로 반환"""
+        error_mask = pd.DataFrame(False, index=df.index, columns=df.columns)
+        for col_name, rule in rules.items():
+            if col_name not in df.columns:
+                continue
+            col = df[col_name]
+            mask = pd.Series(False, index=df.index)
+
+            if rule.get('check_null'):
+                mask = mask | col.isna()
+
+            if 'valid_values' in rule:
+                try:
+                    valid_num = set(float(v) for v in rule['valid_values'])
+                    numeric = pd.to_numeric(col, errors='coerce')
+                    mask = mask | (col.notna() & ~numeric.isin(valid_num))
+                except Exception:
+                    mask = mask | (col.notna() & ~col.isin(rule['valid_values']))
+
+            if rule.get('check_range'):
+                try:
+                    numeric = pd.to_numeric(col, errors='coerce')
+                    out = col.notna() & ((numeric < rule['min_value']) | (numeric > rule['max_value']))
+                    mask = mask | out
+                except Exception:
+                    pass
+
+            error_mask[col_name] = mask
+        return error_mask
+
+    def _show_raw_data_with_errors(self, df, error_mask, rules):
+        """원본 데이터 중 에러 행만 QTableWidget에 표시 (에러 셀 빨간 배경)"""
         from PyQt5.QtWidgets import QTableWidgetItem
         from PyQt5.QtGui import QColor
 
-        STATUS_COLORS = {
-            'PASS':    ('#d4f5e9', '#145a32'),
-            'FAIL':    ('#fde8e8', '#922b21'),
-            'WARNING': ('#fef9e7', '#7d6608'),
-            'N/A':     ('#f0f0f0', '#555555'),
-        }
+        ERROR_BG = QColor('#ffcccc')
+        ERROR_FG = QColor('#8b0000')
+        NORMAL_BG = QColor('#ffffff')
+        NORMAL_FG = QColor('#222222')
 
-        self.result_table.setRowCount(len(results))
-        for row_idx, r in enumerate(results):
-            status = r.get('Status', '')
-            bg, fg = STATUS_COLORS.get(status, ('#ffffff', '#000000'))
-            values = [
-                str(r.get('ID', '')),
-                str(r.get('Column', '')),
-                str(r.get('Check', '')),
-                str(r.get('Criteria', '')),
-                status,
-                str(r.get('Fail_Count', 0)),
-                str(r.get('Details', '')),
-            ]
-            for col_idx, val in enumerate(values):
-                item = QTableWidgetItem(val)
-                item.setBackground(QColor(bg))
-                item.setForeground(QColor(fg))
+        error_row_mask = error_mask.any(axis=1)
+        df_err = df[error_row_mask].copy()
+        em_err = error_mask[error_row_mask].copy()
+
+        if df_err.empty:
+            self.result_label.hide()
+            self.result_table.hide()
+            return
+
+        # 표시할 컬럼: signal_kst_ts + 규칙 컬럼만 (가독성)
+        rule_cols = [c for c in rules.keys() if c in df.columns]
+        context_cols = [c for c in ['signal_kst_ts', 'unix_time'] if c in df.columns and c not in rule_cols]
+        display_cols = context_cols + rule_cols
+
+        df_show = df_err[display_cols].reset_index(drop=False)
+        em_show = em_err[display_cols].reset_index(drop=True)
+        all_cols = ['index'] + display_cols
+        MAX_ROWS = 2000
+
+        self.result_table.setColumnCount(len(all_cols))
+        self.result_table.setHorizontalHeaderLabels(all_cols)
+        row_count = min(len(df_show), MAX_ROWS)
+        self.result_table.setRowCount(row_count)
+
+        for row_idx in range(row_count):
+            for col_idx, col_name in enumerate(all_cols):
+                if col_name == 'index':
+                    val = str(df_show['index'].iloc[row_idx])
+                    item = QTableWidgetItem(val)
+                    item.setBackground(NORMAL_BG)
+                    item.setForeground(NORMAL_FG)
+                else:
+                    val = str(df_show[col_name].iloc[row_idx])
+                    item = QTableWidgetItem(val)
+                    is_error = bool(em_show[col_name].iloc[row_idx]) if col_name in em_show.columns else False
+                    if is_error:
+                        item.setBackground(ERROR_BG)
+                        item.setForeground(ERROR_FG)
+                    else:
+                        item.setBackground(NORMAL_BG)
+                        item.setForeground(NORMAL_FG)
                 self.result_table.setItem(row_idx, col_idx, item)
 
         self.result_table.resizeColumnsToContents()
+        total_err = int(error_row_mask.sum())
+        self.result_label.setText(
+            f"에러 발생 행: {total_err:,}행 (표시: {row_count}행) · 규칙 위반 셀 빨간색 강조"
+        )
+        self.result_label.show()
         self.result_table.show()
         if self.height() < 950:
             self.resize(self.width(), 950)
+
+    def _export_highlighted_xlsx(self, df, error_mask, base_name, timestamp):
+        """에러 셀을 빨간 배경으로 강조한 XLSX 파일 생성"""
+        try:
+            MAX_ROWS = 100000
+            df_out = df.iloc[:MAX_ROWS].reset_index(drop=True)
+            em_out = error_mask.iloc[:MAX_ROWS].reset_index(drop=True)
+
+            def highlight(data):
+                styles = pd.DataFrame('', index=data.index, columns=data.columns)
+                for col in em_out.columns:
+                    if col in styles.columns:
+                        styles.loc[em_out[col].values, col] = 'background-color: #ffcccc; color: #8b0000'
+                return styles
+
+            xlsx_path = f"validation_highlighted_{base_name}_{timestamp}.xlsx"
+            df_out.style.apply(highlight, axis=None).to_excel(xlsx_path, engine='openpyxl', index=False)
+            return xlsx_path
+        except Exception:
+            return None
 
 
 class WorkerThread(QThread):
