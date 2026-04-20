@@ -7,7 +7,7 @@ echo ========================================
 echo.
 
 REM 현재 디렉터리
-cd /d "C:\Users\LGRnD\Desktop\project\download_and_review"
+cd /d "%~dp0.."
 echo 작업 디렉터리: %CD%
 echo.
 

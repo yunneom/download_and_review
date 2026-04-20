@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0.."
 REM 한글 인코딩 설정
 chcp 65001 >nul
 
