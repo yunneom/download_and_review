@@ -259,9 +259,9 @@
     <div class="stat-row" style="margin-top:28px;">
       <div class="stat-item"><div class="num">35</div><div class="lbl">검증 항목</div></div>
       <div class="stat-item"><div class="num">71</div><div class="lbl">세부 검사 조건</div></div>
-      <div class="stat-item"><div class="num">4</div><div class="lbl">지원 Fleet</div></div>
+      <div class="stat-item"><div class="num">4</div><div class="lbl">지원 OEM/Fleet</div></div>
       <div class="stat-item"><div class="num">317</div><div class="lbl">등록 차량 모델</div></div>
-      <div class="stat-item"><div class="num">100+</div><div class="lbl">배치 처리 대수</div></div>
+      <div class="stat-item"><div class="num">100대</div><div class="lbl">동시 검증 가능 규모</div></div>
     </div>
   </section>
 
@@ -284,7 +284,8 @@
 
     <div class="quote">
       "IGN이 꺼진 다음 충전이나 슬립 대기 구간 데이터만 골라서 16번, 19번, 20번 검증에 써야 하니 구현해줘."<br><br>
-      → AI가 즉시 <code>_get_collection_window_mask()</code> 함수를 작성하고 설명을 붙여줬습니다.
+      → AI가 <code>_get_collection_window_mask()</code> 함수를 즉시 작성하고 설명을 붙여줬습니다.<br>
+      <span style="font-style:normal; font-size:13px; color:#555;">다만 이 한 문장으로 완성된 것이 아닙니다. 엣지케이스 발견 → 재요청 → 수정의 대화를 수차례 반복하며 다듬어 나갔습니다. 바이브코딩은 "즉시 생성"이 아니라 <strong>"빠른 반복"</strong>이 핵심입니다.</span>
     </div>
 
     <hr class="divider">
@@ -312,9 +313,11 @@
       </div>
       <div class="tl-item">
         <div class="tl-label">Phase 6–7</div>
-        <h4>PyQt5 GUI + 배치 처리</h4>
-        <p>데스크톱 GUI 구현. PID 리스트 기반 100대 이상 배치 자동 검증.
-        통합 결과 Excel 리포트 자동 생성.</p>
+        <h4>멀티스레드 배치 엔진 · 웹 인터페이스 · 트렌드 분석</h4>
+        <p><strong>ThreadPoolExecutor</strong> 기반 병렬 배치 검증 엔진 구현 — 100대를 단일 실행으로 처리.<br>
+        <strong>Flask 웹 앱</strong>으로 브라우저·모바일에서 직접 검증 실행 (설치 불필요).<br>
+        차종별 에러율 히트맵 · Range 개선 제안 · p01~p99 분포를 담은 <strong>트렌드 분석 HTML 리포트</strong> 자동 생성.<br>
+        pyarrow schema 기반 필요 컬럼만 선별 로드 · double-checked locking 캐시로 메모리·속도 최적화.</p>
       </div>
       <div class="tl-item">
         <div class="tl-label">Phase 8–9</div>
@@ -439,12 +442,12 @@ validator.generate_html_report(<span class="st">"result.html"</span>)    <span c
 
     <div class="callout" style="margin-top:28px;">
       <div class="callout-label">Summary</div>
-      <p>"데이터 품질 도구가 없어서 만들었고, AI와 함께 만들었습니다.<br>
-      규칙은 코드가 되었고, 결과는 누구나 볼 수 있게 됐습니다."</p>
+      <p>"데이터 품질 검증 도구가 없어서 AI를 활용하여 생성하였습니다.<br>
+      Prompt의 규칙이 코드가 되었고, 이제 누구나 결과를 쉽게 볼 수 있습니다."</p>
     </div>
 
     <p style="margin-top:32px; text-align:right; font-size:12px;">
-      <a class="back-link" href="index.html">← 발표 슬라이드로 돌아가기</a>
+      <a class="back-link" href="index.html">발표 슬라이드로 이동하기 →</a>
     </p>
   </section>
 

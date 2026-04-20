@@ -268,7 +268,7 @@
       <div class="title-meta">
         <span><strong>대상 서비스</strong><br>AX Fleet · prod monitoring</span>
         <span><strong>지원 차량</strong><br>VWGKALRT · HKMC · GM · Tesla 등</span>
-        <span><strong>처리 규모</strong><br>최대 100대 배치 · 317개 모델 자동 매칭</span>
+        <span><strong>동시 검증 규모</strong><br>100대 동시 검증 · 317개 모델 자동 매칭</span>
       </div>
     </div>
     <div style="position:absolute; right:56px; top:50%; transform:translateY(-50%); opacity:0.06; font-size:200px; line-height:1; pointer-events:none; user-select:none;">🔋</div>
@@ -435,7 +435,7 @@ BCP/LGES/{pid}/...
       <h2>데이터 처리 파이프라인</h2>
     </div>
 
-    <div class="pipeline" style="margin-bottom:20px;">
+    <div class="pipeline" style="margin-bottom:12px;">
       <div class="pipeline-step"><div class="step-num">1</div><span class="step-icon">☁️</span><strong>S3 다운로드</strong><br><span style="color:var(--muted); font-size:11px;">Parquet / CSV</span></div>
       <div class="pipeline-arrow">→</div>
       <div class="pipeline-step"><div class="step-num">2</div><span class="step-icon">🗂</span><strong>메타데이터 로드</strong><br><span style="color:var(--muted); font-size:11px;">vehicle_master.json</span></div>
@@ -445,6 +445,22 @@ BCP/LGES/{pid}/...
       <div class="pipeline-step"><div class="step-num">4</div><span class="step-icon">✅</span><strong>BMS 검증</strong><br><span style="color:var(--muted); font-size:11px;">35 items · 71 checks</span></div>
       <div class="pipeline-arrow">→</div>
       <div class="pipeline-step"><div class="step-num">5</div><span class="step-icon">📊</span><strong>리포트 생성</strong><br><span style="color:var(--muted); font-size:11px;">XLSX · HTML</span></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:18px; padding:10px 16px; background:rgba(0,113,227,0.05); border:1px solid rgba(0,113,227,0.15); border-radius:10px; margin-bottom:16px; font-size:12px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:15px;">🕐</span>
+        <div><span style="color:var(--muted);">기존 수작업</span><br><strong style="color:var(--fail); font-size:14px;">~10분</strong> <span style="color:var(--muted);">/ PID 1대·하루치</span></div>
+      </div>
+      <div style="font-size:20px; color:var(--muted);">→</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:15px;">⚡</span>
+        <div><span style="color:var(--muted);">DART 자동화</span><br><strong style="color:var(--pass); font-size:14px;">~1분</strong> <span style="color:var(--muted);">/ PID 1대·하루치</span></div>
+      </div>
+      <div style="width:1px; height:36px; background:var(--border);"></div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <div style="display:flex; align-items:center; gap:7px;"><span style="background:rgba(52,199,89,0.15); color:#1a7f37; font-weight:700; font-size:13px; padding:2px 10px; border-radius:8px;">90% 시간 절감</span><span style="color:var(--muted);">검증 소요시간 기준</span></div>
+        <div style="display:flex; align-items:center; gap:7px;"><span style="background:rgba(0,113,227,0.12); color:var(--primary); font-weight:700; font-size:13px; padding:2px 10px; border-radius:8px;">100% 재현성</span><span style="color:var(--muted);">담당자 무관, 동일 결과 보장</span></div>
+      </div>
     </div>
 
     <div class="grid-2" style="flex:1; gap:14px;">
@@ -483,17 +499,33 @@ BCP/LGES/{pid}/...
 
       <div style="display:flex; flex-direction:column; gap:10px;">
         <div class="card">
-          <h3 style="margin-bottom:9px; font-size:14px;">STEP 6 · 리포트 출력 컬럼</h3>
+          <h3 style="margin-bottom:5px; font-size:14px;">STEP 5 · 스마트 컬럼 스크리닝</h3>
+          <div style="font-size:12px; color:var(--muted); margin-bottom:9px; line-height:1.7;">
+            전체 파일 컬럼 중 <strong style="color:var(--text);">Core Engine · Pipeline에 직접 관련된 컬럼만</strong> 선별 로드.<br>
+            pyarrow schema를 미리 읽어 불필요 컬럼을 I/O 단계에서 차단합니다.
+          </div>
+          <div style="display:flex; gap:8px; margin-bottom:9px; font-size:12px;">
+            <div style="flex:1; padding:7px 10px; background:rgba(255,59,48,0.07); border-radius:8px; text-align:center;">
+              <div style="font-weight:700; color:var(--fail);">436개</div>
+              <div style="color:var(--muted); font-size:11px;">전체 컬럼</div>
+            </div>
+            <div style="display:flex; align-items:center; color:var(--muted);">→</div>
+            <div style="flex:1; padding:7px 10px; background:rgba(52,199,89,0.08); border-radius:8px; text-align:center;">
+              <div style="font-weight:700; color:var(--pass);">278개</div>
+              <div style="color:var(--muted); font-size:11px;">검증 필요 컬럼</div>
+            </div>
+            <div style="display:flex; align-items:center; color:var(--muted);">→</div>
+            <div style="flex:1; padding:7px 10px; background:rgba(0,113,227,0.08); border-radius:8px; text-align:center;">
+              <div style="font-weight:700; color:var(--primary);">36% 절감</div>
+              <div style="color:var(--muted); font-size:11px;">메모리 사용량</div>
+            </div>
+          </div>
           <table>
-            <thead><tr><th>컬럼</th><th>예시</th></tr></thead>
+            <thead><tr><th>리포트 컬럼</th><th>예시</th></tr></thead>
             <tbody>
-              <tr><td>ID</td><td>16-1</td></tr>
-              <tr><td>Column</td><td>cell_voltage_1~N</td></tr>
-              <tr><td>Check</td><td>수집 주기</td></tr>
-              <tr><td>Criteria</td><td>3초 &lt; interval &lt; 60초</td></tr>
+              <tr><td>ID · Column</td><td>16-1 / cell_voltage_1~N</td></tr>
               <tr><td>Status</td><td><span class="badge badge-pass">PASS</span> <span class="badge badge-fail">FAIL</span></td></tr>
-              <tr><td>Fail_Count</td><td>42</td></tr>
-              <tr><td>Details</td><td>idx=1742, cell_voltage_1=3.82</td></tr>
+              <tr><td>Fail_Count · Details</td><td>42건 / idx=1742, val=3.82</td></tr>
             </tbody>
           </table>
         </div>
@@ -1003,8 +1035,105 @@ validator.generate_html_report(
     </div>
   </div>
 
-  <!-- SLIDE 11 · SUMMARY -->
+  <!-- SLIDE 11 · VIBE CODING EFFECT -->
   <div class="slide" id="slide-11">
+    <div class="slide-header">
+      <div class="slide-tag">바이브코딩 효과 · 기존 방식 비교</div>
+      <h2>숫자로 보는 개발 & 품질 검증 혁신</h2>
+    </div>
+
+    <div class="grid-2" style="flex:1; gap:18px;">
+      <!-- 개발 방식 비교 -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card card-fail" style="padding:16px 18px;">
+          <div style="font-size:11px; letter-spacing:1px; color:var(--fail); margin-bottom:10px; font-weight:600;">기존 개발 방식</div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">코드 작성 <strong style="color:var(--text);">7</strong> : 리뷰 <strong style="color:var(--text);">3</strong></div>
+          <div style="display:flex; gap:3px; margin-bottom:8px;">
+            <div style="flex:7; height:22px; background:rgba(255,59,48,0.2); border-radius:4px 0 0 4px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--fail);">코드 작성 70%</div>
+            <div style="flex:3; height:22px; background:rgba(142,142,147,0.2); border-radius:0 4px 4px 0; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--na);">리뷰 30%</div>
+          </div>
+          <ul class="check-list" style="font-size:12px;">
+            <li>기획서·설계 문서 작성 후 구현 착수</li>
+            <li>스프린트 단위 개발 → 아이디어→코드 수 일~수 주</li>
+            <li>도메인 지식 보유자 직접 코드 작성 필수</li>
+          </ul>
+        </div>
+
+        <div class="card card-accent" style="padding:16px 18px;">
+          <div style="font-size:11px; letter-spacing:1px; color:var(--primary); margin-bottom:10px; font-weight:600;">바이브코딩 방식</div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">만들기 <strong style="color:var(--text);">1</strong> : 검증·조정 <strong style="color:var(--text);">9</strong></div>
+          <div style="display:flex; gap:3px; margin-bottom:8px;">
+            <div style="flex:1; height:22px; background:rgba(0,113,227,0.15); border-radius:4px 0 0 4px; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--primary);">생성 10%</div>
+            <div style="flex:9; height:22px; background:rgba(52,199,89,0.2); border-radius:0 4px 4px 0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#1a7f37;">도메인 검증·방향 조정 90%</div>
+          </div>
+          <ul class="check-list" style="font-size:12px;">
+            <li>아이디어를 말로 설명 → AI가 즉시 코드 생성</li>
+            <li>개발자는 도메인 판단·품질 검토에 집중</li>
+            <li>같은 날 안에 신규 기능 프로덕션 수준으로 완성</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 수치화된 효과 -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card" style="padding:16px 18px;">
+          <div style="font-size:11px; letter-spacing:1px; color:var(--primary); margin-bottom:12px; font-weight:600;">검증 운영 효율 — Before vs After</div>
+          <table>
+            <thead><tr><th>항목</th><th>기존 수작업</th><th>DART 자동화</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>PID 1대·하루치 검증</td>
+                <td style="color:var(--fail); font-weight:600;">~10분</td>
+                <td style="color:var(--pass); font-weight:600;">~1분</td>
+              </tr>
+              <tr>
+                <td>100대 일괄 검증</td>
+                <td style="color:var(--fail); font-weight:600;">~17시간</td>
+                <td style="color:var(--pass); font-weight:600;">~30분</td>
+              </tr>
+              <tr>
+                <td>담당자 의존도</td>
+                <td style="color:var(--fail);">규칙 숙지 필수</td>
+                <td style="color:var(--pass);">누구나 실행 가능</td>
+              </tr>
+              <tr>
+                <td>결과 재현성</td>
+                <td style="color:var(--warn);">검토자마다 상이</td>
+                <td style="color:var(--pass); font-weight:600;">100% 동일</td>
+              </tr>
+              <tr>
+                <td>오류 발견 시점</td>
+                <td style="color:var(--fail);">수일치 데이터 누적 후</td>
+                <td style="color:var(--pass);">당일 자동 감지</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid-2" style="gap:10px;">
+          <div class="stat-box">
+            <div class="stat-num" style="color:var(--pass);">90%</div>
+            <div class="stat-label">검증 시간 절감<br>(10분 → 1분)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" style="color:var(--primary);">97%</div>
+            <div class="stat-label">배치 시간 절감<br>(17h → 30min)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" style="color:#5856d6;">100%</div>
+            <div class="stat-label">검증 재현성<br>(코드 기반 규칙)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" style="color:var(--warn);">0명</div>
+            <div class="stat-label">전담 인력 필요<br>(누구나 실행)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12 · SUMMARY -->
+  <div class="slide" id="slide-12">
     <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
       <div style="text-align:center; margin-bottom:32px;">
         <div class="slide-tag" style="text-align:center; margin-bottom:10px;">Summary</div>
@@ -1051,14 +1180,14 @@ validator.generate_html_report(
 
 <nav class="nav">
   <button onclick="prevSlide()">← 이전</button>
-  <span class="page-info" id="page-info">1 / 11</span>
+  <span class="page-info" id="page-info">1 / 12</span>
   <div class="dots" id="dots"></div>
   <button onclick="nextSlide()">다음 →</button>
 </nav>
 <div class="key-hint">← → 키로 이동</div>
 
 <script>
-  const TOTAL = 11;
+  const TOTAL = 12;
   let current = 1;
 
   const dotsEl = document.getElementById('dots');
