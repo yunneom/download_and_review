@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>자동화 검증 계획 보고</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .page {
+      width: 960px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      padding: 40px 48px 36px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 3px solid #1a73e8;
+      padding-bottom: 14px;
+      margin-bottom: 28px;
+    }
+    .header-left h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a2e;
+      letter-spacing: -0.3px;
+    }
+    .header-left p {
+      font-size: 13px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .header-right {
+      font-size: 12px;
+      color: #888;
+      text-align: right;
+      line-height: 1.7;
+    }
+
+    /* ── Section ── */
+    .section { margin-bottom: 28px; }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .section-title .badge {
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .badge-blc  { background: #fff176; color: #333; border: 1px solid #f9c800; }
+    .badge-bonce { background: #ffe0b2; color: #bf360c; border: 1px solid #ffb74d; }
+    .badge-admin { background: #b3e5fc; color: #01579b; border: 1px solid #4fc3f7; }
+
+    .section-subtitle {
+      font-size: 12px;
+      color: #888;
+    }
+
+    /* ── Table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead tr {
+      background: #f5f7fa;
+    }
+    th {
+      padding: 9px 12px;
+      text-align: center;
+      font-weight: 600;
+      color: #444;
+      border: 1px solid #dde2ea;
+    }
+    th.col-platform { text-align: left; width: 200px; }
+    td {
+      padding: 9px 12px;
+      border: 1px solid #dde2ea;
+      text-align: center;
+      vertical-align: middle;
+    }
+    td.col-platform {
+      text-align: left;
+      font-weight: 500;
+      color: #333;
+      background: #fafbfc;
+    }
+
+    /* progress cell */
+    .cell-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .bar-bg {
+      width: 100%;
+      height: 6px;
+      background: #e8eaf0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+    .pct-label { font-size: 12px; font-weight: 600; }
+
+    /* color by value */
+    .lvl-high   .bar-fill { background: #34a853; }
+    .lvl-high   .pct-label { color: #2e7d32; }
+    .lvl-mid    .bar-fill { background: #fbbc04; }
+    .lvl-mid    .pct-label { color: #f57f17; }
+    .lvl-low    .bar-fill { background: #ea4335; }
+    .lvl-low    .pct-label { color: #c62828; }
+    .lvl-none   .pct-label { color: #aaa; font-weight: 400; }
+
+    /* TBC badge */
+    .tbc {
+      display: inline-block;
+      background: #e8eaf6;
+      color: #3949ab;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: 1px solid #9fa8da;
+    }
+
+    /* remark cell */
+    td.remark {
+      text-align: left;
+      font-size: 12px;
+      color: #666;
+    }
+    .tag-cond {
+      display: inline-block;
+      background: #fff3e0;
+      color: #e65100;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 8px;
+      border: 1px solid #ffcc80;
+    }
+
+    /* ── Footer notes ── */
+    .notes {
+      border-top: 1px solid #e8eaf0;
+      padding-top: 16px;
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    .note-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      color: #555;
+      line-height: 1.6;
+    }
+    .note-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>자동화 검증 추진 계획 보고</h1>
+      <p>B-Lifecare · B.Once · B.Once(admin) 플랫폼 자동화 테스트 커버리지 로드맵</p>
+    </div>
+    <div class="header-right">
+      보고일: 2026.04.20<br>
+      작성: QA팀
+    </div>
+  </div>
+
+  <!-- BLC -->
+  <div class="section">
+    <div class="section-title">
+      <span class="badge badge-blc">BLC &nbsp;(B-Lifecare)</span>
+      <span class="section-subtitle">Android / iOS 앱 자동화 검증</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-platform">플랫폼</th>
+          <th>Current</th>
+          <th>2Q</th>
+          <th>3Q</th>
+          <th>4Q</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-platform">Android</td>
+          <td><div class="cell-wrap lvl-mid"><div class="bar-bg"><div class="bar-fill" style="width:63%"></div></div><span class="pct-label">63%</span></div></td>
+          <td><div class="cell-wrap lvl-mid"><div class="bar-bg"><div class="bar-fill" style="width:69%"></div></div><span class="pct-label">69%</span></div></td>
+          <td><div class="cell-wrap lvl-high"><div class="bar-bg"><div class="bar-fill" style="width:75%"></div></div><span class="pct-label">75%</span></div></td>
+          <td><div class="cell-wrap lvl-high"><div class="bar-bg"><div class="bar-fill" style="width:80%"></div></div><span class="pct-label">80%</span></div></td>
+          <td class="remark">—</td>
+        </tr>
+        <tr>
+          <td class="col-platform">iOS &nbsp;<span style="font-size:11px;color:#999">(w/o Resource ID)</span></td>
+          <td><div class="cell-wrap lvl-low"><div class="bar-bg"><div class="bar-fill" style="width:34%"></div></div><span class="pct-label">34%</span></div></td>
+          <td><div class="cell-wrap lvl-low"><div class="bar-bg"><div class="bar-fill" style="width:42%"></div></div><span class="pct-label">42%</span></div></td>
+          <td><div class="cell-wrap lvl-mid"><div class="bar-bg"><div class="bar-fill" style="width:50%"></div></div><span class="pct-label">50%</span></div></td>
+          <td><div class="cell-wrap lvl-none"><span class="tbc">TBC</span></div></td>
+          <td class="remark">—</td>
+        </tr>
+        <tr>
+          <td class="col-platform">iOS &nbsp;<span style="font-size:11px;color:#999">(w/ Resource ID)</span></td>
+          <td><div class="cell-wrap lvl-low"><div class="bar-bg"><div class="bar-fill" style="width:34%"></div></div><span class="pct-label">34%</span></div></td>
+          <td><div class="cell-wrap lvl-mid"><div class="bar-bg"><div class="bar-fill" style="width:50%"></div></div><span class="pct-label">50%</span></div></td>
+          <td><div class="cell-wrap lvl-mid"><div class="bar-bg"><div class="bar-fill" style="width:65%"></div></div><span class="pct-label">65%</span></div></td>
+          <td><div class="cell-wrap lvl-high"><div class="bar-bg"><div class="bar-fill" style="width:80%"></div></div><span class="pct-label">80%</span></div></td>
+          <td class="remark"><span class="tag-cond">Resource ID 확보 조건</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- B.Once -->
+  <div class="section">
+    <div class="section-title">
+      <span class="badge badge-bonce">B.Once</span>
+      <span class="section-subtitle">Android / iOS 앱 자동화 검증</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-platform">플랫폼</th>
+          <th>Current</th>
+          <th>2Q</th>
+          <th>3Q</th>
+          <th>4Q</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-platform">Android</td>
+          <td><div class="cell-wrap lvl-none"><span class="pct-label">미진행</span></div></td>
+          <td><div class="cell-wrap lvl-none"><span class="pct-label">미진행</span></div></td>
+          <td><div class="cell-wrap lvl-low"><div class="bar-bg"><div class="bar-fill" style="width:40%"></div></div><span class="pct-label">40%</span></div></td>
+          <td><div class="cell-wrap lvl-high"><div class="bar-bg"><div class="bar-fill" style="width:85%"></div></div><span class="pct-label">85%</span></div></td>
+          <td class="remark">—</td>
+        </tr>
+        <tr>
+          <td class="col-platform">iOS &nbsp;<span style="font-size:11px;color:#999">(w/o Resource ID)</span></td>
+          <td><div class="cell-wrap lvl-none"><span class="pct-label">미진행</span></div></td>
+          <td><div class="cell-wrap lvl-none"><span class="pct-label">미진행</span></div></td>
+          <td><div class="cell-wrap lvl-low"><div class="bar-bg"><div class="bar-fill" style="width:0%"></div></div><span class="pct-label">0%</span></div></td>
+          <td><div class="cell-wrap lvl-none"><span class="tbc">TBC</span></div></td>
+          <td class="remark">—</td>
+        </tr>
+        <tr>
+          <td class="col-platform">iOS &nbsp;<span style="font-size:11px;color:#999">(w/ Resource ID)</span></td>
+          <td><div class="cell-wrap lvl-none"><span class="pct-label">미진행</span></div></td>
+          <td><div class="cell-wrap lvl-none"><span class="pct-label">미진행</span></div></td>
+          <td><div class="cell-wrap lvl-low"><div class="bar-bg"><div class="bar-fill" style="width:40%"></div></div><span class="pct-label">40%</span></div></td>
+          <td><div class="cell-wrap lvl-high"><div class="bar-bg"><div class="bar-fill" style="width:80%"></div></div><span class="pct-label">80%</span></div></td>
+          <td class="remark"><span class="tag-cond">Resource ID 확보 조건</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- B.Once(admin) -->
+  <div class="section">
+    <div class="section-title">
+      <span class="badge badge-admin">B.Once (admin)</span>
+      <span class="section-subtitle">Web 자동화 검증</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-platform">항목</th>
+          <th>Current</th>
+          <th>2Q</th>
+          <th>3Q</th>
+          <th>4Q</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-platform">Web 자동화</td>
+          <td><div class="cell-wrap lvl-low"><div class="bar-bg"><div class="bar-fill" style="width:0%"></div></div><span class="pct-label">0%</span></div></td>
+          <td><div class="cell-wrap lvl-none"><span class="pct-label">미진행</span></div></td>
+          <td><div class="cell-wrap lvl-none"><span class="pct-label">미진행</span></div></td>
+          <td><div class="cell-wrap lvl-none"><span class="tbc">TBC</span></div></td>
+          <td class="remark">—</td>
+        </tr>
+        <tr>
+          <td class="col-platform">TC Design</td>
+          <td><div class="cell-wrap lvl-low"><div class="bar-bg"><div class="bar-fill" style="width:20%"></div></div><span class="pct-label">20%</span></div></td>
+          <td><div class="cell-wrap lvl-high"><div class="bar-bg"><div class="bar-fill" style="width:100%"></div></div><span class="pct-label">100%</span></div></td>
+          <td><div class="cell-wrap lvl-none"><span class="pct-label">—</span></div></td>
+          <td><div class="cell-wrap lvl-none"><span class="pct-label">—</span></div></td>
+          <td class="remark">—</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer notes -->
+  <div class="notes">
+    <div class="note-item">
+      <span class="note-icon">📌</span>
+      <div><strong>TBC (To Be Checked)</strong><br>외주 협력사 GSI 일정 검토 중 · 4월 말 확정 예정</div>
+    </div>
+    <div class="note-item">
+      <span class="note-icon">⚠️</span>
+      <div><strong>Resource ID 확보 조건</strong><br>iOS 커버리지 목표치는 Resource ID 확보 여부에 따라 변동 가능</div>
+    </div>
+    <div class="note-item">
+      <span class="note-icon">📊</span>
+      <div><strong>기준</strong><br>수치는 자동화 TC 커버리지(%) 기준 / 분기별 목표치</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

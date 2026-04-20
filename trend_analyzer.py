@@ -16,7 +16,7 @@ from pathlib import Path
 
 class TrendAnalyzer:
     def __init__(self, df: pd.DataFrame):
-        self.df = df.copy()
+        self.df = df
 
     @classmethod
     def from_parquet(cls, path):
@@ -108,10 +108,13 @@ class TrendAnalyzer:
             if row["actual_max"] > row["current_max"]:
                 notes.append(f"상한 완화 필요 ({row['current_max']} → {row['suggested_max']})")
             # 실데이터가 범위보다 훨씬 안쪽에 있음 → 강화 가능
+            # current_min/max가 0인 경우 절대값 기준 대신 range 크기 기준 사용
             if not notes:
-                if row["min_delta"] < -abs(row["current_min"]) * 0.1:
+                range_size = abs(row["current_max"] - row["current_min"]) or 1.0
+                threshold  = range_size * 0.1
+                if row["min_delta"] < -threshold:
                     notes.append(f"하한 강화 가능 ({row['current_min']} → {row['suggested_min']})")
-                if row["max_delta"] < -abs(row["current_max"]) * 0.1:
+                if row["max_delta"] < -threshold:
                     notes.append(f"상한 강화 가능 ({row['current_max']} → {row['suggested_max']})")
             return " | ".join(notes) if notes else "미세 조정"
 

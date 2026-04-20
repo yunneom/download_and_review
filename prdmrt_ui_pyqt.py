@@ -12,10 +12,10 @@ import pandas as pd
 from datetime import datetime, timedelta
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QTextEdit, QProgressBar, 
+    QLabel, QLineEdit, QPushButton, QTextEdit, QProgressBar,
     QMessageBox, QGroupBox, QRadioButton, QButtonGroup, QFileDialog,
     QMenuBar, QMenu, QAction, QCalendarWidget, QDialog, QDialogButtonBox,
-    QPlainTextEdit
+    QPlainTextEdit, QScrollArea, QTableWidget, QHeaderView,
 )
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QDate
 from PyQt5.QtGui import QFont, QColor
@@ -108,8 +108,6 @@ class DataValidationDialog(QDialog):
         rules_layout = QVBoxLayout()
         
         # 규칙 추가 영역
-        from PyQt5.QtWidgets import QTextEdit, QScrollArea
-        
         self.rules_text = QTextEdit()
         self.rules_text.setPlaceholderText(
             "검증 규칙 예시:\n\n"
@@ -167,7 +165,6 @@ class DataValidationDialog(QDialog):
         layout.addLayout(btn_layout)
 
         # 원본 데이터 에러 강조 테이블
-        from PyQt5.QtWidgets import QTableWidget, QHeaderView, QLabel
         self.result_label = QLabel("에러 발생 행 (규칙 위반 셀 강조 표시)")
         self.result_label.setStyleSheet("font-weight: bold; color: #c0392b; padding: 4px 0;")
         self.result_label.hide()

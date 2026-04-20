@@ -23,7 +23,7 @@ FILE_PATHS = {
     'local_parquet': 'downloaded.parquet',
     'local_csv': 'converted.csv',
     'report_path': 'validation_report.csv',
-    'log_file': 'prdmrt.log',
+    'log_file': 'logs/prdmrt.log',
 }
 
 # === 검증 설정 ===

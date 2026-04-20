@@ -16,6 +16,7 @@ import numpy as np
 from datetime import datetime
 import os
 import json
+import threading
 import boto3
 from logger import logger
 from typing import Optional
@@ -45,38 +46,45 @@ class BMSDataValidator:
         
     # 클래스 레벨 캐시: S3에서 한 번만 로드하면 모든 인스턴스가 공유
     _vehicle_master_cache: Optional[list] = None
-    
+    _vehicle_master_lock = threading.Lock()
+
     def _load_vehicle_master(self):
         """S3에서 차종 정보 JSON 로드
         JSON 구조: list of dict [{model_name, serial_conn_cnt, module_temp_cnt, ...}]
         - 캐시: 한 번 로드하면 클래스 변수에 저장 → 여러 파일 검증 시 S3 재호출 안 함
         - list 형태 그대로 유지 (dict 변환 없음)
         """
-        # 이미 캐시된 데이터가 있으면 재사용
         if BMSDataValidator._vehicle_master_cache is not None:
             self.vehicle_master = BMSDataValidator._vehicle_master_cache
             logger.info(f"차종 정보 캐시 사용: {len(self.vehicle_master)}개 모델")
             return
-        
-        try:
-            s3 = boto3.client(
-                's3',
-                aws_access_key_id=self.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=self.AWS_SECRET_ACCESS_KEY,
-                region_name=self.AWS_REGION
-            )
-            response = s3.get_object(
-                Bucket='eplat-validation-monitor',
-                Key='tools/download&review/vehicle_master.json'
-            )
-            raw = json.loads(response['Body'].read().decode('utf-8'))
-            # list 형태 그대로 유지
-            self.vehicle_master = raw if isinstance(raw, list) else []
-            BMSDataValidator._vehicle_master_cache = self.vehicle_master
-            logger.info(f"차종 정보 로드 완료: {len(self.vehicle_master)}개 모델")
-        except Exception as e:
-            logger.warning(f"차종 정보 로드 실패: {e}")
-            self.vehicle_master = []
+
+        with BMSDataValidator._vehicle_master_lock:
+            # lock 획득 후 재확인 (double-checked locking)
+            if BMSDataValidator._vehicle_master_cache is not None:
+                self.vehicle_master = BMSDataValidator._vehicle_master_cache
+                logger.info(f"차종 정보 캐시 사용: {len(self.vehicle_master)}개 모델")
+                return
+
+            try:
+                s3 = boto3.client(
+                    's3',
+                    aws_access_key_id=self.AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=self.AWS_SECRET_ACCESS_KEY,
+                    region_name=self.AWS_REGION
+                )
+                response = s3.get_object(
+                    Bucket='eplat-validation-monitor',
+                    Key='tools/download&review/vehicle_master.json'
+                )
+                raw = json.loads(response['Body'].read().decode('utf-8'))
+                # list 형태 그대로 유지
+                self.vehicle_master = raw if isinstance(raw, list) else []
+                BMSDataValidator._vehicle_master_cache = self.vehicle_master
+                logger.info(f"차종 정보 로드 완료: {len(self.vehicle_master)}개 모델")
+            except Exception as e:
+                logger.warning(f"차종 정보 로드 실패: {e}")
+                self.vehicle_master = []
     
     def _get_vehicle_info(self):
         """데이터에서 fleet/vehicle_model 추출 후 JSON에서 셀/모듈 개수 조회
@@ -1898,14 +1906,13 @@ class BMSDataValidator:
                            'N/A', 0, '필요한 컬럼 없음')
             return
         
-        df = self.df.copy()
-        # vehicle speed 255는 0으로 치환 (오류값 예외처리)
-        df['em_speed_kmh'] = df['em_speed_kmh'].replace(255, 0)
-        
+        # vehicle speed 255는 0으로 치환 (오류값 예외처리) — 전체 복사 없이 마스크로 처리
+        speed = self.df['em_speed_kmh'].where(self.df['em_speed_kmh'] != 255, 0)
+
         # vehicle speed > 1인데 IGN <> 1 (IGN이 1이 아닌 경우 - 오류 조건)
-        invalid_mask = (df['em_speed_kmh'] > 1) & (df['ignit_status'] != 1)
+        invalid_mask = (speed > 1) & (self.df['ignit_status'] != 1)
         invalid_count = invalid_mask.sum()
-        invalid_indices = df[invalid_mask].index.tolist()
+        invalid_indices = self.df[invalid_mask].index.tolist()
         
         status = 'PASS' if invalid_count == 0 else 'FAIL'
         self._add_result('32-1', 'IGN * vehicle speed', '값 유효성',

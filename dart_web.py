@@ -186,10 +186,13 @@ def run_validation():
     today = datetime.now().strftime('%Y-%m-%d')
 
     # ── 입력 검증 ──
-    if not pid_raw.isdigit():
+    if not pid_raw.lstrip('-').isdigit() or not pid_raw.lstrip('-'):
         return render_template_string(FORM_HTML, error="PID는 숫자여야 합니다.", today=today,
                                       pid=pid_raw, start_date=start_date, end_date=end_date)
     pid = int(pid_raw)
+    if pid <= 0:
+        return render_template_string(FORM_HTML, error="PID는 1 이상의 양수여야 합니다.", today=today,
+                                      pid=pid_raw, start_date=start_date, end_date=end_date)
 
     try:
         start_dt = datetime.strptime(start_date, '%Y-%m-%d')

@@ -12,6 +12,7 @@ import json
 import boto3
 import pandas as pd
 import numpy as np
+import pyarrow.parquet as pq
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -147,7 +148,12 @@ class BatchValidator:
     def _load_df(self, key):
         obj = self.s3.get_object(Bucket=self.bucket, Key=key)
         buf = io.BytesIO(obj["Body"].read())
-        return pd.read_parquet(buf) if key.endswith(".parquet") else pd.read_csv(buf)
+        if key.endswith(".parquet"):
+            needed = {r["column"] for r in self.rules}
+            schema_cols = set(pq.read_schema(buf).names)
+            buf.seek(0)
+            return pd.read_parquet(buf, columns=list(needed & schema_cols))
+        return pd.read_csv(buf)
 
     def _extract_model_info(self, df):
         """DataFrame에서 차종 / fleet 추출"""
@@ -276,7 +282,7 @@ class BatchValidator:
         pids / start_date / end_date 를 지정하면 해당 범위만 처리.
         지정하지 않으면 self.prefix 로 파일 목록 수집.
         """
-        if pids and start_date and end_date:
+        if pids is not None and start_date and end_date:
             print(f"PID {len(pids)}개 · {start_date} ~ {end_date} 대상 파일 목록 수집...")
             prefixes = self.build_prefixes_for_pids(
                 pids, start_date, end_date, server_type, env
