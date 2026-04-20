@@ -5,6 +5,7 @@
 """
 
 import logging
+import os
 from config import LOGGING_CONFIG, FILE_PATHS
 
 def setup_logger(name='prdmrt'):
@@ -20,6 +21,11 @@ def setup_logger(name='prdmrt'):
     if logger.handlers:
         logger.handlers.clear()
     
+    # 로그 디렉터리 자동 생성
+    log_dir = os.path.dirname(FILE_PATHS['log_file'])
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+
     # 파일 핸들러
     file_handler = logging.FileHandler(FILE_PATHS['log_file'], encoding='utf-8')
     file_handler.setLevel(logging.INFO)
