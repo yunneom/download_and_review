@@ -18,24 +18,31 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 # ── 기본 검증 규칙 ────────────────────────────────────────────────
+# 제외 항목:
+#   ir       — BMSDataValidator에서 수집주기만 체크. 값 범위 검증 없음. 정적 range 적용 시 오탐.
+#   pack_pwr — 실제 검증은 pack_curr × pack_volt 기반 동적 범위(cell_count 의존).
+#              고정 range 적용 불가 (W 단위 값이 ±수십만 W 범위).
 DEFAULT_RULES = [
-    {"column": "soc_display_rate",  "check": "range",        "min": 0,    "max": 100},
-    {"column": "soc_rate",          "check": "range",        "min": 0,    "max": 100},
-    {"column": "soh_rate",          "check": "range",        "min": 0,    "max": 110},
-    {"column": "pack_volt",         "check": "range",        "min": 200,  "max": 500},
-    {"column": "pack_curr",         "check": "range",        "min": -500, "max": 500},
-    {"column": "module_min_temp",   "check": "range",        "min": -40,  "max": 85},
-    {"column": "module_max_temp",   "check": "range",        "min": -40,  "max": 85},
-    {"column": "module_avg_temp",   "check": "range",        "min": -40,  "max": 85},
-    {"column": "cell_min_volt",     "check": "range",        "min": 2.5,  "max": 4.5},
-    {"column": "cell_max_volt",     "check": "range",        "min": 2.5,  "max": 4.5},
-    {"column": "cell_volt_dev",     "check": "range",        "min": 0,    "max": 0.5},
-    {"column": "em_speed_kmh",      "check": "range",        "min": 0,    "max": 300},
-    {"column": "mile_km",           "check": "range",        "min": 0,    "max": 500000},
-    {"column": "ir",                "check": "range",        "min": 0,    "max": 1000},
-    {"column": "pack_pwr",          "check": "range",        "min": -200, "max": 200},
+    {"column": "soc_display_rate",  "check": "range",        "min": 0,       "max": 100},
+    {"column": "soc_rate",          "check": "range",        "min": 0,       "max": 100},
+    {"column": "soh_rate",          "check": "range",        "min": 0,       "max": 110},
+    {"column": "pack_volt",         "check": "range",        "min": 200,     "max": 500},
+    {"column": "pack_curr",         "check": "range",        "min": -500,    "max": 500},
+    {"column": "module_min_temp",   "check": "range",        "min": -40,     "max": 85},
+    {"column": "module_max_temp",   "check": "range",        "min": -40,     "max": 85},
+    {"column": "module_avg_temp",   "check": "range",        "min": -40,     "max": 85},
+    {"column": "cell_min_volt",     "check": "range",        "min": 2.5,     "max": 4.5},
+    {"column": "cell_max_volt",     "check": "range",        "min": 2.5,     "max": 4.5},
+    {"column": "cell_volt_dev",     "check": "range",        "min": 0,       "max": 0.5},
+    {"column": "em_speed_kmh",      "check": "range",        "min": 0,       "max": 300},
+    {"column": "mile_km",           "check": "range",        "min": 0,       "max": 500000},
+    {"column": "acc_chg_ah",        "check": "range",        "min": 0,       "max": 9999999},
+    {"column": "acc_chg_wh",        "check": "range",        "min": 0,       "max": 99999999},
+    {"column": "acc_dchg_ah",       "check": "range",        "min": -9999999,"max": 9999999},
+    {"column": "acc_dchg_wh",       "check": "range",        "min": -9999999,"max": 99999999},
     {"column": "ignit_status",      "check": "valid_values", "values": [0, 1]},
     {"column": "main_relay_status", "check": "valid_values", "values": [0, 1]},
+    {"column": "chg_conr_status_list","check":"valid_values", "values": [0, 1, 2, 3]},
 ]
 
 # ── S3 키 패턴 ───────────────────────────────────────────────────
