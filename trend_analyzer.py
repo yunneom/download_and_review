@@ -13,6 +13,11 @@ import numpy as np
 from datetime import datetime
 from pathlib import Path
 
+try:
+    from batch_validator import EXCLUDED_CHECKS as _DEFAULT_EXCLUDED
+except ImportError:
+    _DEFAULT_EXCLUDED = []
+
 
 class TrendAnalyzer:
     def __init__(self, df: pd.DataFrame):
@@ -124,11 +129,13 @@ class TrendAnalyzer:
     # ── HTML 리포트 ────────────────────────────────────────────
 
     def generate_html_report(self, output_path="reports/trend_report.html",
-                             title="BMS 에러 트렌드 분석"):
+                             title="BMS 에러 트렌드 분석",
+                             excluded_checks=None):
         pivot    = self.error_rate_pivot()
         top_err  = self.top_errors(20)
         sugg     = self.suggest_ranges()
         gen_at   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        excl     = excluded_checks if excluded_checks is not None else _DEFAULT_EXCLUDED
 
         total_vehicles = int(self.df["vehicle_id"].nunique()) if "vehicle_id" in self.df.columns else 0
         total_models   = int(self.df["model"].nunique())      if "model"      in self.df.columns else 0
@@ -166,6 +173,19 @@ class TrendAnalyzer:
   <td style="color:#8a9abb;">[{r['current_min']}, {r['current_max']}]</td>
   <td style="color:#00c4a0;font-weight:700;">[{r['suggested_min']}, {r['suggested_max']}]</td>
   <td style="font-size:11px; color:{action_clr};">{r['action']}</td>
+</tr>"""
+            return rows
+
+        # ── 제외 항목 테이블 ──
+        def excluded_rows():
+            if not excl:
+                return '<tr><td colspan="3" style="text-align:center;color:#8a9abb;padding:20px;">제외 항목 없음</td></tr>'
+            rows = ""
+            for e in excl:
+                rows += f"""<tr>
+  <td style="text-align:center;color:#c07aee;font-weight:700;font-family:Consolas,monospace;">{e.get('bms_id','')}</td>
+  <td style="color:#e8f0fe;font-weight:600;">{e.get('item','')}</td>
+  <td style="color:#8a9abb;font-size:11px;">{e.get('reason','')}</td>
 </tr>"""
             return rows
 
@@ -322,6 +342,23 @@ tr:hover td {{ background:rgba(255,255,255,0.025); }}
         </tr>
       </thead>
       <tbody>{valid_val_rows()}</tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 제외 항목 -->
+<div class="section">
+  <div class="sec-title">🚫 배치 검증 제외 항목 (BMSDataValidator 검증 대상이나 트렌드 집계 불가)</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align:center;width:140px;">BMS 항목 ID</th>
+          <th>검증 항목</th>
+          <th>제외 이유</th>
+        </tr>
+      </thead>
+      <tbody>{excluded_rows()}</tbody>
     </table>
   </div>
 </div>

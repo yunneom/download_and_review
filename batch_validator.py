@@ -9,6 +9,7 @@ S3에서 수십~수백 대 차량 parquet 파일을 병렬로 검증하고
 import os
 import io
 import json
+import fnmatch
 import boto3
 import pandas as pd
 import numpy as np
@@ -18,31 +19,119 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 # ── 기본 검증 규칙 ────────────────────────────────────────────────
-# 제외 항목:
-#   ir       — BMSDataValidator에서 수집주기만 체크. 값 범위 검증 없음. 정적 range 적용 시 오탐.
-#   pack_pwr — 실제 검증은 pack_curr × pack_volt 기반 동적 범위(cell_count 의존).
-#              고정 range 적용 불가 (W 단위 값이 ±수십만 W 범위).
+#
+# check 종류:
+#   "null"        — null 건수를 fail_count 로 집계 (BMSDataValidator null 체크 항목)
+#   "range"       — min ≤ 값 ≤ max 범위 검증
+#   "valid_values"— 허용 값 목록 검증
+#
+# column_pattern — 와일드카드(*) 패턴으로 동적 컬럼 확장 (fnmatch 사용)
+#   battery_module_*_temperature, cell_voltage_* 등 차량별 개수가 다른 컬럼에 사용
+#
+# ── 제외 항목 (EXCLUDED_CHECKS 참조) ──
+#   pack_volt range   — cell_count 의존 동적 범위 (차종별 상이)
+#   pack_pwr          — pack_curr × pack_volt × cell_count 동적 범위 (W 단위 ±수십만)
+#   ir                — BMSDataValidator는 수집주기만 체크, 값 범위 없음
+#   cell_min/max_volt_no — cell_count 의존 동적 상한
+#   수집주기 검증      — 행 간 시간 차이 순차 분석 필요, 파일 단위 통계 불가
+#   복합 이벤트 (28~35)— 다중 컬럼 + 이벤트 분할 로직 필요
+
 DEFAULT_RULES = [
-    {"column": "soc_display_rate",  "check": "range",        "min": 0,       "max": 100},
-    {"column": "soc_rate",          "check": "range",        "min": 0,       "max": 100},
-    {"column": "soh_rate",          "check": "range",        "min": 0,       "max": 110},
-    {"column": "pack_volt",         "check": "range",        "min": 200,     "max": 500},
-    {"column": "pack_curr",         "check": "range",        "min": -500,    "max": 500},
-    {"column": "module_min_temp",   "check": "range",        "min": -40,     "max": 85},
-    {"column": "module_max_temp",   "check": "range",        "min": -40,     "max": 85},
-    {"column": "module_avg_temp",   "check": "range",        "min": -40,     "max": 85},
-    {"column": "cell_min_volt",     "check": "range",        "min": 2.5,     "max": 4.5},
-    {"column": "cell_max_volt",     "check": "range",        "min": 2.5,     "max": 4.5},
-    {"column": "cell_volt_dev",     "check": "range",        "min": 0,       "max": 0.5},
-    {"column": "em_speed_kmh",      "check": "range",        "min": 0,       "max": 300},
-    {"column": "mile_km",           "check": "range",        "min": 0,       "max": 500000},
-    {"column": "acc_chg_ah",        "check": "range",        "min": 0,       "max": 9999999},
-    {"column": "acc_chg_wh",        "check": "range",        "min": 0,       "max": 99999999},
-    {"column": "acc_dchg_ah",       "check": "range",        "min": -9999999,"max": 9999999},
-    {"column": "acc_dchg_wh",       "check": "range",        "min": -9999999,"max": 99999999},
-    {"column": "ignit_status",      "check": "valid_values", "values": [0, 1]},
-    {"column": "main_relay_status", "check": "valid_values", "values": [0, 1]},
-    {"column": "chg_conr_status_list","check":"valid_values", "values": ["0|0", "0|1", "1|0"]},
+    # ── null 체크 (BMSDataValidator 1-2 ~ 6-1 명시적 null FAIL 항목) ──
+    {"column": "unix_time",            "check": "null"},
+    {"column": "ignit_status",         "check": "null"},
+    {"column": "chg_conr_status_list", "check": "null"},
+    {"column": "em_speed_kmh",         "check": "null"},
+    {"column": "pack_curr",            "check": "null"},
+    {"column": "pack_volt",            "check": "null"},
+
+    # ── 범위 검증 ──────────────────────────────────────────────────
+    {"column": "soc_display_rate",  "check": "range", "min": 0,        "max": 100},
+    {"column": "soc_rate",          "check": "range", "min": 0,        "max": 100},
+    {"column": "soh_rate",          "check": "range", "min": 0,        "max": 110},
+    # pack_volt range는 동적(cell_count 의존)이라 EXCLUDED_CHECKS에 기재
+    {"column": "pack_curr",         "check": "range", "min": -500,     "max": 500},
+    # BMS 기준 -20~60; 개별 모듈(battery_module_N_temperature)도 동일 범위
+    {"column": "module_min_temp",   "check": "range", "min": -20,      "max": 60},
+    {"column": "module_max_temp",   "check": "range", "min": -20,      "max": 60},
+    {"column": "module_avg_temp",   "check": "range", "min": -20,      "max": 60},
+    # BMS 기준 2.6~4.5
+    {"column": "cell_min_volt",     "check": "range", "min": 2.6,      "max": 4.5},
+    {"column": "cell_max_volt",     "check": "range", "min": 2.6,      "max": 4.5},
+    {"column": "cell_volt_dev",     "check": "range", "min": 0,        "max": 0.5},
+    {"column": "em_speed_kmh",      "check": "range", "min": 0,        "max": 300},
+    {"column": "mile_km",           "check": "range", "min": 0,        "max": 500000},
+    {"column": "acc_chg_ah",        "check": "range", "min": 0,        "max": 9999999},
+    {"column": "acc_chg_wh",        "check": "range", "min": 0,        "max": 99999999},
+    {"column": "acc_dchg_ah",       "check": "range", "min": -9999999, "max": 9999999},
+    {"column": "acc_dchg_wh",       "check": "range", "min": -9999999, "max": 99999999},
+
+    # ── 유효값 검증 ────────────────────────────────────────────────
+    {"column": "ignit_status",           "check": "valid_values", "values": [0, 1]},
+    {"column": "main_relay_status",      "check": "valid_values", "values": [0, 1]},
+    # 실제 데이터 형식: 파이프 구분 문자열 ("0|0", "0|1", "1|0")
+    {"column": "chg_conr_status_list",   "check": "valid_values", "values": ["0|0", "0|1", "1|0"]},
+
+    # ── 동적 컬럼 패턴 (fnmatch 와일드카드) ────────────────────────
+    # battery_module_1_temperature ~ battery_module_N_temperature (BMS 검증 항목 20-3/4)
+    {"column_pattern": "battery_module_*_temperature", "check": "range", "min": -20.0, "max": 60.0},
+    # cell_voltage_1 ~ cell_voltage_N (BMS 검증 항목 16-3/4)
+    {"column_pattern": "cell_voltage_*", "check": "range", "min": 2.6, "max": 4.3},
+]
+
+# ── 배치 검증에서 제외된 BMSDataValidator 항목 ───────────────────
+# trend_analyzer HTML 리포트에 이유와 함께 표시됨
+EXCLUDED_CHECKS = [
+    {
+        "bms_id": "1-1",
+        "item": "unix_time 수집주기",
+        "reason": "행 간 시간 차이 계산이 필요한 순차 분석. 파일 단위 컬럼 통계로 표현 불가.",
+    },
+    {
+        "bms_id": "6-2",
+        "item": "pack_volt 범위",
+        "reason": "셀 개수(cell_count) 의존 동적 범위 (셀전압 2.6~4.5V × N셀). 차종별 기준이 달라 고정 range 적용 불가.",
+    },
+    {
+        "bms_id": "10-3 / 22-3 / 23-3 / 24-3 / 25-3",
+        "item": "mile_km / acc_chg·dchg 선형증가",
+        "reason": "행 간 diff 계산이 필요한 순차 분석. 파일 단위 통계로 표현 불가.",
+    },
+    {
+        "bms_id": "13-2",
+        "item": "cell_volt_dev 교차검증",
+        "reason": "cell_volt_dev = cell_max_volt − cell_min_volt 교차 컬럼 비교 필요. 범위 검증(0~0.5)으로 부분 대체.",
+    },
+    {
+        "bms_id": "14-2 / 15-2",
+        "item": "cell_min/max_volt_no 범위",
+        "reason": "cell_count 의존 동적 상한 (≤ N셀). 차종별 기준이 달라 고정 range 적용 불가.",
+    },
+    {
+        "bms_id": "16-1 / 19-1 / 20-1",
+        "item": "수집구간 마스크 기반 수집주기",
+        "reason": "ignit_status + chg_conr_status_list 기반 수집구간 마스크 구성이 필요한 복합 순차 분석.",
+    },
+    {
+        "bms_id": "21-1",
+        "item": "oper_second 수집주기",
+        "reason": "수집주기만 체크하며 값 범위 없음. 순차 분석 필요.",
+    },
+    {
+        "bms_id": "26",
+        "item": "pack_pwr 범위",
+        "reason": "pack_curr × pack_volt × cell_count 기반 동적 범위 (W 단위 ±수십만). 차종별 기준 상이.",
+    },
+    {
+        "bms_id": "27",
+        "item": "ir 수집주기",
+        "reason": "BMSDataValidator는 수집주기만 체크 (값 범위 없음). 순차 분석 필요.",
+    },
+    {
+        "bms_id": "28~35",
+        "item": "복합 이벤트 검증 (충전시간·시작종료·Sleep·SOH·IGN속도·릴레이·충전조건)",
+        "reason": "여러 컬럼 조합 + 이벤트 분할 로직이 필요한 복합 순차 분석. 단일 컬럼 통계로 표현 불가.",
+    },
 ]
 
 # ── S3 키 패턴 ───────────────────────────────────────────────────
@@ -156,11 +245,28 @@ class BatchValidator:
         obj = self.s3.get_object(Bucket=self.bucket, Key=key)
         buf = io.BytesIO(obj["Body"].read())
         if key.endswith(".parquet"):
-            needed = {r["column"] for r in self.rules}
             schema_cols = set(pq.read_schema(buf).names)
             buf.seek(0)
+            # 고정 컬럼 + 패턴 컬럼 모두 포함
+            needed = {r["column"] for r in self.rules if "column" in r}
+            for rule in self.rules:
+                if "column_pattern" in rule:
+                    pat = rule["column_pattern"]
+                    needed |= {c for c in schema_cols if fnmatch.fnmatch(c, pat)}
             return pd.read_parquet(buf, columns=list(needed & schema_cols))
         return pd.read_csv(buf)
+
+    def _expand_rules(self, df):
+        """column_pattern 규칙을 DataFrame 실제 컬럼으로 확장"""
+        expanded = []
+        for rule in self.rules:
+            if "column_pattern" in rule:
+                pat = rule["column_pattern"]
+                for col in sorted(c for c in df.columns if fnmatch.fnmatch(c, pat)):
+                    expanded.append({**rule, "column": col})
+            else:
+                expanded.append(rule)
+        return expanded
 
     def _extract_model_info(self, df):
         """DataFrame에서 차종 / fleet 추출"""
@@ -183,10 +289,10 @@ class BatchValidator:
     def _validate_df(self, df, meta):
         """DataFrame에 규칙 적용 → 결과 레코드 목록 반환"""
         model, fleet = self._extract_model_info(df)
-        total_rows = len(df)
-        records = []
+        total_rows   = len(df)
+        records      = []
 
-        for rule in self.rules:
+        for rule in self._expand_rules(df):
             col   = rule["column"]
             check = rule["check"]
             if col not in df.columns:
@@ -195,20 +301,27 @@ class BatchValidator:
             series     = df[col]
             null_count = int(series.isna().sum())
             base = {
-                "pid":        meta["pid"],
-                "vehicle_id": meta["vehicle_id"],
-                "server_type":meta["server_type"],
-                "model":      model,
-                "fleet":      fleet,
-                "date":       meta["date"],
-                "s3_key":     meta["s3_key"],
-                "column":     col,
-                "check":      check,
-                "total_rows": total_rows,
-                "null_count": null_count,
+                "pid":         meta["pid"],
+                "vehicle_id":  meta["vehicle_id"],
+                "server_type": meta["server_type"],
+                "model":       model,
+                "fleet":       fleet,
+                "date":        meta["date"],
+                "s3_key":      meta["s3_key"],
+                "column":      col,
+                "check":       check,
+                "total_rows":  total_rows,
+                "null_count":  null_count,
             }
 
-            if check == "range":
+            if check == "null":
+                records.append({
+                    **base,
+                    "fail_count": null_count,
+                    "fail_rate":  round(null_count / total_rows * 100, 4) if total_rows else 0,
+                })
+
+            elif check == "range":
                 mn, mx    = rule["min"], rule["max"]
                 numeric   = pd.to_numeric(series, errors="coerce")
                 fail_mask = series.notna() & ((numeric < mn) | (numeric > mx))
@@ -234,10 +347,10 @@ class BatchValidator:
 
                 records.append({
                     **base,
-                    "rule_min":  mn,
-                    "rule_max":  mx,
+                    "rule_min":   mn,
+                    "rule_max":   mx,
                     "fail_count": fail_count,
-                    "fail_rate": round(fail_count / total_rows * 100, 4) if total_rows else 0,
+                    "fail_rate":  round(fail_count / total_rows * 100, 4) if total_rows else 0,
                     **stats,
                 })
 
@@ -251,7 +364,6 @@ class BatchValidator:
                     fail_mask = series.notna() & ~series.isin(valid)
                 fail_count = int(fail_mask.sum())
 
-                # 실제 등장값 top-5
                 top_vals = (
                     series.value_counts().head(5).to_dict()
                     if fail_count > 0 else {}
@@ -259,10 +371,10 @@ class BatchValidator:
 
                 records.append({
                     **base,
-                    "rule_values":  str(valid),
-                    "fail_count":   fail_count,
-                    "fail_rate":    round(fail_count / total_rows * 100, 4) if total_rows else 0,
-                    "top_values":   str(top_vals),
+                    "rule_values": str(valid),
+                    "fail_count":  fail_count,
+                    "fail_rate":   round(fail_count / total_rows * 100, 4) if total_rows else 0,
+                    "top_values":  str(top_vals),
                 })
 
         return records
