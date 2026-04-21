@@ -42,7 +42,7 @@ DEFAULT_RULES = [
     {"column": "acc_dchg_wh",       "check": "range",        "min": -9999999,"max": 99999999},
     {"column": "ignit_status",      "check": "valid_values", "values": [0, 1]},
     {"column": "main_relay_status", "check": "valid_values", "values": [0, 1]},
-    {"column": "chg_conr_status_list","check":"valid_values", "values": [0, 1, 2, 3]},
+    {"column": "chg_conr_status_list","check":"valid_values", "values": ["0|0", "0|1", "1|0"]},
 ]
 
 # ── S3 키 패턴 ───────────────────────────────────────────────────
