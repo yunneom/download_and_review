@@ -8,6 +8,7 @@ S3에서 수십~수백 대 차량 parquet 파일을 병렬로 검증하고
 
 import os
 import io
+import re
 import json
 import fnmatch
 import boto3
@@ -247,14 +248,28 @@ class BatchValidator:
         if key.endswith(".parquet"):
             schema_cols = set(pq.read_schema(buf).names)
             buf.seek(0)
-            # 고정 컬럼 + 패턴 컬럼 모두 포함
+            # 고정 컬럼 + 패턴 컬럼 + 첫 에러 시점 표시용 signal_kst_ts
             needed = {r["column"] for r in self.rules if "column" in r}
+            needed.add("signal_kst_ts")
             for rule in self.rules:
                 if "column_pattern" in rule:
                     pat = rule["column_pattern"]
                     needed |= {c for c in schema_cols if fnmatch.fnmatch(c, pat)}
             return pd.read_parquet(buf, columns=list(needed & schema_cols))
         return pd.read_csv(buf)
+
+    def _first_fail_kst(self, df, fail_mask):
+        """fail_mask 첫 True 인덱스의 signal_kst_ts → HH:MM 문자열"""
+        if "signal_kst_ts" not in df.columns or fail_mask is None:
+            return None
+        if not fail_mask.any():
+            return None
+        first_idx = fail_mask.idxmax()
+        ts = df.at[first_idx, "signal_kst_ts"]
+        if pd.isna(ts):
+            return None
+        m = re.search(r"(\d{1,2}:\d{2})", str(ts))
+        return m.group(1) if m else None
 
     def _expand_rules(self, df):
         """column_pattern 규칙을 DataFrame 실제 컬럼으로 확장"""
@@ -317,8 +332,9 @@ class BatchValidator:
             if check == "null":
                 records.append({
                     **base,
-                    "fail_count": null_count,
-                    "fail_rate":  round(null_count / total_rows * 100, 4) if total_rows else 0,
+                    "fail_count":     null_count,
+                    "fail_rate":      round(null_count / total_rows * 100, 4) if total_rows else 0,
+                    "first_fail_kst": self._first_fail_kst(df, series.isna()),
                 })
 
             elif check == "range":
@@ -347,10 +363,11 @@ class BatchValidator:
 
                 records.append({
                     **base,
-                    "rule_min":   mn,
-                    "rule_max":   mx,
-                    "fail_count": fail_count,
-                    "fail_rate":  round(fail_count / total_rows * 100, 4) if total_rows else 0,
+                    "rule_min":       mn,
+                    "rule_max":       mx,
+                    "fail_count":     fail_count,
+                    "fail_rate":      round(fail_count / total_rows * 100, 4) if total_rows else 0,
+                    "first_fail_kst": self._first_fail_kst(df, fail_mask),
                     **stats,
                 })
 
@@ -371,10 +388,11 @@ class BatchValidator:
 
                 records.append({
                     **base,
-                    "rule_values": str(valid),
-                    "fail_count":  fail_count,
-                    "fail_rate":   round(fail_count / total_rows * 100, 4) if total_rows else 0,
-                    "top_values":  str(top_vals),
+                    "rule_values":    str(valid),
+                    "fail_count":     fail_count,
+                    "fail_rate":      round(fail_count / total_rows * 100, 4) if total_rows else 0,
+                    "first_fail_kst": self._first_fail_kst(df, fail_mask),
+                    "top_values":     str(top_vals),
                 })
 
         return records

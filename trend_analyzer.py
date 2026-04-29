@@ -48,14 +48,23 @@ class TrendAnalyzer:
         err = self.df[self.df["fail_rate"] > 0]
         if err.empty:
             return pd.DataFrame()
+
+        def _first_kst(s):
+            non_null = s.dropna()
+            return non_null.iloc[0] if len(non_null) else None
+
+        agg_kwargs = dict(
+            vehicles     =("vehicle_id", "nunique"),
+            avg_fail_rate=("fail_rate",   "mean"),
+            max_fail_rate=("fail_rate",   "max"),
+            total_fails  =("fail_count",  "sum"),
+        )
+        if "first_fail_kst" in err.columns:
+            agg_kwargs["sample_kst"] = ("first_fail_kst", _first_kst)
+
         return (
             err.groupby(["model", "column", "check"])
-            .agg(
-                vehicles     =("vehicle_id", "nunique"),
-                avg_fail_rate=("fail_rate",   "mean"),
-                max_fail_rate=("fail_rate",   "max"),
-                total_fails  =("fail_count",  "sum"),
-            )
+            .agg(**agg_kwargs)
             .reset_index()
             .sort_values("avg_fail_rate", ascending=False)
             .head(n)
@@ -153,6 +162,8 @@ class TrendAnalyzer:
                 "labels":   (top_err["model"] + " / " + top_err["column"]).tolist() if not top_err.empty else [],
                 "values":   top_err["avg_fail_rate"].round(2).tolist()               if not top_err.empty else [],
                 "vehicles": top_err["vehicles"].tolist()                              if not top_err.empty else [],
+                "sampleKst": (top_err["sample_kst"].fillna("-").tolist()
+                              if not top_err.empty and "sample_kst" in top_err.columns else []),
             },
         }
 
@@ -198,26 +209,37 @@ class TrendAnalyzer:
                 (self.df["fail_rate"] > 0)
             ]
             if vdf.empty:
-                return '<tr><td colspan="6" style="text-align:center;color:#8a9abb;padding:20px;">valid_values 에러 없음</td></tr>'
+                return '<tr><td colspan="7" style="text-align:center;color:#8a9abb;padding:20px;">valid_values 에러 없음</td></tr>'
+            def _first_kst(s):
+                nn = s.dropna()
+                return nn.iloc[0] if len(nn) else None
+
+            agg_kwargs = dict(
+                vehicles     =("vehicle_id",  "nunique"),
+                avg_fail_rate=("fail_rate",   "mean"),
+                top_values   =("top_values",  "first"),
+            )
+            if "first_fail_kst" in vdf.columns:
+                agg_kwargs["sample_kst"] = ("first_fail_kst", _first_kst)
+
             agg = (
                 vdf.groupby(["model", "column", "rule_values"])
-                .agg(
-                    vehicles     =("vehicle_id",  "nunique"),
-                    avg_fail_rate=("fail_rate",   "mean"),
-                    top_values   =("top_values",  "first"),
-                )
+                .agg(**agg_kwargs)
                 .reset_index()
                 .sort_values("avg_fail_rate", ascending=False)
                 .head(15)
             )
             rows = ""
             for _, r in agg.iterrows():
+                kst = r.get("sample_kst") if "sample_kst" in agg.columns else None
+                kst_disp = kst if kst and pd.notna(kst) else "-"
                 rows += f"""<tr>
   <td style="color:#7ab3f5;font-weight:600;">{r['model']}</td>
   <td style="font-family:Consolas,monospace;font-size:12px;">{r['column']}</td>
   <td style="color:#8a9abb;">{r['rule_values']}</td>
   <td style="text-align:center;color:#ff5a5a;font-weight:700;">{r['avg_fail_rate']:.2f}%</td>
   <td style="text-align:center;">{int(r['vehicles'])}대</td>
+  <td style="text-align:center;color:#00c4a0;font-family:Consolas,monospace;">{kst_disp}</td>
   <td style="font-size:11px;color:#8a9abb;font-family:Consolas,monospace;">{r['top_values']}</td>
 </tr>"""
             return rows
@@ -338,6 +360,7 @@ tr:hover td {{ background:rgba(255,255,255,0.025); }}
           <th>차종</th><th>컬럼</th><th>허용값</th>
           <th style="text-align:center;">평균 에러율</th>
           <th style="text-align:center;">해당 차량</th>
+          <th style="text-align:center;">첫 에러 시점</th>
           <th>실제 등장값 (빈도순)</th>
         </tr>
       </thead>
@@ -424,7 +447,13 @@ const CD = {json.dumps(chart_data, ensure_ascii=False)};
           titleColor: '#e8f0fe',
           bodyColor: '#8a9abb',
           callbacks: {{
-            afterLabel: ctx => `차량 수: ${{te.vehicles[ctx.dataIndex]}}대`
+            afterLabel: ctx => {{
+              const lines = [`차량 수: ${{te.vehicles[ctx.dataIndex]}}대`];
+              if (te.sampleKst && te.sampleKst[ctx.dataIndex] && te.sampleKst[ctx.dataIndex] !== '-') {{
+                lines.push(`첫 에러 시점: ${{te.sampleKst[ctx.dataIndex]}}`);
+              }}
+              return lines;
+            }}
           }}
         }}
       }},

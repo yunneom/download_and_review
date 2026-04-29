@@ -200,7 +200,8 @@ class BMSDataValidator:
         """검증에 사용하는 컬럼 목록 반환 (CSV 로드 시 필요 컬럼만 선별)"""
         # 기본 검증 컬럼
         base_cols = [
-            'unix_time', 'ignit_status', 'chg_conr_status_list', 'em_speed_kmh',
+            'unix_time', 'signal_kst_ts',
+            'ignit_status', 'chg_conr_status_list', 'em_speed_kmh',
             'pack_curr', 'pack_volt', 'main_relay_status', 'soc_display_rate',
             'soc_rate', 'mile_km', 'cell_min_volt', 'cell_max_volt', 'cell_volt_dev',
             'cell_min_volt_no', 'cell_max_volt_no', 'module_min_temp', 'module_max_temp',
