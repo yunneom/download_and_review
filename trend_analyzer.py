@@ -7,6 +7,7 @@ batch_validator 결과를 분석하여:
   - HTML 트렌드 리포트
 """
 
+import re
 import json
 import pandas as pd
 import numpy as np
@@ -69,6 +70,85 @@ class TrendAnalyzer:
             .sort_values("avg_fail_rate", ascending=False)
             .head(n)
         )
+
+    # ── 이슈 드릴다운 ──────────────────────────────────────────
+
+    @staticmethod
+    def issue_id(model, column, check):
+        """(model, column, check) → URL-안전한 anchor ID"""
+        s = f"{model}-{column}-{check}"
+        return "issue-" + re.sub(r"[^a-zA-Z0-9_-]", "_", str(s))
+
+    def get_top_issues(self, n=15, min_fail_rate=0.5):
+        """드릴다운 대상 (model, column, check) 키 목록 (avg_fail_rate 내림차순)"""
+        err = self.df[self.df["fail_rate"] >= min_fail_rate]
+        if err.empty:
+            return []
+        avg = (err.groupby(["model", "column", "check"])["fail_rate"]
+               .mean().sort_values(ascending=False).head(n))
+        return list(avg.index)
+
+    def issue_detail(self, model, column, check, max_pids=10, max_samples=5):
+        """특정 (model, column, check) 이슈의 PID/날짜/샘플 드릴다운"""
+        df = self.df[
+            (self.df["model"]  == model)  &
+            (self.df["column"] == column) &
+            (self.df["check"]  == check)  &
+            (self.df["fail_rate"] > 0)
+        ]
+        if df.empty:
+            return None
+
+        def _first_kst(s):
+            nn = s.dropna()
+            return nn.iloc[0] if len(nn) else None
+
+        # PID 단위 집계
+        pid_kwargs = dict(
+            files      =("s3_key",     "nunique"),
+            avg_fail   =("fail_rate",  "mean"),
+            max_fail   =("fail_rate",  "max"),
+            total_fail =("fail_count", "sum"),
+            worst_key  =("s3_key",     "first"),
+        )
+        if "first_fail_kst" in df.columns:
+            pid_kwargs["sample_kst"] = ("first_fail_kst", _first_kst)
+
+        pid_agg = (df.groupby(["pid", "vehicle_id"])
+                   .agg(**pid_kwargs)
+                   .reset_index()
+                   .sort_values("avg_fail", ascending=False)
+                   .head(max_pids))
+
+        # 날짜별 추이
+        date_agg = (df.groupby("date")
+                    .agg(avg_fail =("fail_rate",  "mean"),
+                         pids     =("pid",        "nunique"),
+                         total    =("fail_count", "sum"))
+                    .reset_index()
+                    .sort_values("date"))
+
+        # Worst 샘플 (조사용 S3 키)
+        worst = (df.nlargest(max_samples, "fail_rate")
+                 [["pid", "date", "fail_rate", "s3_key"]]
+                 .reset_index(drop=True))
+
+        # 통합 통계
+        summary = {
+            "total_files":     int(df["s3_key"].nunique()),
+            "total_vehicles":  int(df["vehicle_id"].nunique()),
+            "total_dates":     int(df["date"].nunique()),
+            "avg_fail_rate":   round(float(df["fail_rate"].mean()), 2),
+            "max_fail_rate":   round(float(df["fail_rate"].max()),  2),
+            "total_fails":     int(df["fail_count"].sum()),
+        }
+
+        return {
+            "summary":       summary,
+            "pid_breakdown": pid_agg,
+            "date_timeline": date_agg,
+            "worst_samples": worst,
+        }
 
     def suggest_ranges(self, min_fail_rate=1.0):
         """
@@ -151,6 +231,23 @@ class TrendAnalyzer:
         total_files    = int(self.df["s3_key"].nunique())     if "s3_key"     in self.df.columns else 0
         avg_fail_rate  = float(self.df["fail_rate"].mean())   if "fail_rate"  in self.df.columns else 0
 
+        # ── 이슈 드릴다운 데이터 준비 ──
+        top_issue_keys = self.get_top_issues(n=15)
+        issue_details  = []
+        timelines      = {}   # canvas_id → {dates, values}
+        for (mdl, col, chk) in top_issue_keys:
+            d = self.issue_detail(mdl, col, chk)
+            if d is None:
+                continue
+            iid = self.issue_id(mdl, col, chk)
+            issue_details.append({"id": iid, "model": mdl, "column": col, "check": chk,
+                                  "detail": d})
+            timelines[iid] = {
+                "dates":  d["date_timeline"]["date"].astype(str).tolist(),
+                "values": d["date_timeline"]["avg_fail"].round(2).tolist(),
+                "pids":   d["date_timeline"]["pids"].tolist(),
+            }
+
         # ── Chart.js 데이터 ──
         chart_data = {
             "heatmap": {
@@ -165,7 +262,92 @@ class TrendAnalyzer:
                 "sampleKst": (top_err["sample_kst"].fillna("-").tolist()
                               if not top_err.empty and "sample_kst" in top_err.columns else []),
             },
+            "timelines": timelines,
         }
+
+        # ── 이슈 카드 렌더링 ──
+        def issue_cards():
+            if not issue_details:
+                return '<div class="muted" style="padding:20px;text-align:center;">에러율 0.5% 이상 이슈 없음</div>'
+            html_parts = []
+            for it in issue_details:
+                d = it["detail"]; sm = d["summary"]
+                pid_rows = ""
+                for _, r in d["pid_breakdown"].iterrows():
+                    kst = r.get("sample_kst") if "sample_kst" in d["pid_breakdown"].columns else None
+                    kst_disp = kst if kst and pd.notna(kst) else "-"
+                    short_key = str(r["worst_key"])
+                    short_key = "..." + short_key[-65:] if len(short_key) > 65 else short_key
+                    pid_rows += f"""<tr>
+  <td style="color:#7ab3f5;font-weight:600;">{r['pid']}</td>
+  <td style="font-size:11px;color:#8a9abb;">{r['vehicle_id']}</td>
+  <td style="text-align:center;">{int(r['files'])}</td>
+  <td style="text-align:center;color:#ff5a5a;font-weight:700;">{r['avg_fail']:.2f}%</td>
+  <td style="text-align:center;color:#f5a623;">{r['max_fail']:.2f}%</td>
+  <td style="text-align:center;">{int(r['total_fail']):,}</td>
+  <td style="text-align:center;color:#00c4a0;font-family:Consolas,monospace;">{kst_disp}</td>
+  <td style="font-size:10px;color:#8a9abb;font-family:Consolas,monospace;" title="{r['worst_key']}">{short_key}</td>
+</tr>"""
+
+                worst_rows = ""
+                for _, r in d["worst_samples"].iterrows():
+                    short_key = str(r["s3_key"])
+                    short_key = "..." + short_key[-80:] if len(short_key) > 80 else short_key
+                    worst_rows += f"""<tr>
+  <td style="color:#7ab3f5;font-weight:600;">{r['pid']}</td>
+  <td style="text-align:center;">{r['date']}</td>
+  <td style="text-align:center;color:#ff5a5a;font-weight:700;">{r['fail_rate']:.2f}%</td>
+  <td style="font-size:10px;color:#8a9abb;font-family:Consolas,monospace;" title="{r['s3_key']}">{short_key}</td>
+</tr>"""
+
+                badge_clr = "#ff5a5a" if sm["avg_fail_rate"] >= 5 else "#f5a623" if sm["avg_fail_rate"] >= 1 else "#00c4a0"
+                html_parts.append(f"""
+<details class="issue-card" id="{it['id']}">
+  <summary>
+    <span class="issue-badge" style="background:{badge_clr}22;color:{badge_clr};">{sm['avg_fail_rate']:.2f}%</span>
+    <span class="issue-title"><b>{it['model']}</b> · <code>{it['column']}</code> · <span class="muted">{it['check']}</span></span>
+    <span class="issue-meta">차량 {sm['total_vehicles']}대 · 파일 {sm['total_files']} · 날짜 {sm['total_dates']}일 · 총 {sm['total_fails']:,}건</span>
+  </summary>
+  <div class="issue-body">
+    <div class="issue-grid">
+      <div class="issue-pids">
+        <div class="card-title">📋 영향 PID Top {len(d['pid_breakdown'])}</div>
+        <div class="tbl-wrap" style="max-height:280px;">
+          <table>
+            <thead><tr>
+              <th>PID</th><th>vehicle_id</th>
+              <th style="text-align:center;">파일</th>
+              <th style="text-align:center;">평균</th>
+              <th style="text-align:center;">최대</th>
+              <th style="text-align:center;">총 fail</th>
+              <th style="text-align:center;">첫 KST</th>
+              <th>샘플 키 (worst)</th>
+            </tr></thead>
+            <tbody>{pid_rows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="issue-timeline">
+        <div class="card-title">📈 날짜별 평균 에러율</div>
+        <canvas id="tl-{it['id']}" height="160"></canvas>
+      </div>
+    </div>
+    <div class="issue-worst">
+      <div class="card-title" style="margin-top:14px;">🔗 조사용 Worst 샘플 (top {len(d['worst_samples'])})</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>PID</th><th style="text-align:center;">날짜</th>
+            <th style="text-align:center;">fail_rate</th><th>S3 키</th>
+          </tr></thead>
+          <tbody>{worst_rows}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</details>
+""")
+            return "\n".join(html_parts)
 
         # ── range 제안 테이블 ──
         def sugg_table_rows():
@@ -286,6 +468,31 @@ tr:hover td {{ background:rgba(255,255,255,0.025); }}
             position:sticky; left:0; background:#0d1b2a; z-index:1; }}
 .footer {{ text-align:center; padding:16px; font-size:11px; color:#4a6a8a;
            border-top:1px solid rgba(255,255,255,0.05); }}
+
+/* 이슈 드릴다운 카드 */
+.issue-card {{ background:#132236; border-radius:10px; margin-bottom:10px;
+               border:1px solid rgba(255,255,255,0.04); }}
+.issue-card[open] {{ border-color:rgba(122,179,245,0.3); }}
+.issue-card summary {{ list-style:none; cursor:pointer; padding:14px 20px;
+                        display:flex; align-items:center; gap:14px; flex-wrap:wrap; }}
+.issue-card summary::-webkit-details-marker {{ display:none; }}
+.issue-card summary::before {{ content:'▶'; color:#7ab3f5; font-size:10px;
+                                transition:transform 0.15s; }}
+.issue-card[open] summary::before {{ transform:rotate(90deg); }}
+.issue-card summary:hover {{ background:rgba(122,179,245,0.04); }}
+.issue-badge {{ display:inline-block; padding:3px 10px; border-radius:9px;
+                 font-weight:800; font-size:11px; min-width:60px; text-align:center; }}
+.issue-title {{ flex:1; font-size:13px; }}
+.issue-title code {{ font-family:Consolas,monospace; background:rgba(255,255,255,0.06);
+                      padding:1px 6px; border-radius:3px; font-size:12px; }}
+.issue-meta {{ font-size:11px; color:#8a9abb; }}
+.issue-body {{ padding:0 20px 20px; }}
+.issue-grid {{ display:grid; grid-template-columns:1.4fr 1fr; gap:18px; margin-top:6px; }}
+.muted {{ color:#8a9abb; font-size:11px; }}
+:target.issue-card {{ box-shadow:0 0 0 2px #7ab3f5; }}
+@media (max-width: 1024px) {{
+  .issue-grid {{ grid-template-columns:1fr; }}
+}}
 </style>
 </head>
 <body>
@@ -367,6 +574,15 @@ tr:hover td {{ background:rgba(255,255,255,0.025); }}
       <tbody>{valid_val_rows()}</tbody>
     </table>
   </div>
+</div>
+
+<!-- 이슈 드릴다운 -->
+<div class="section">
+  <div class="sec-title">🔍 이슈 드릴다운 — PID / 날짜 / 샘플 단위 분석</div>
+  <div style="font-size:11px;color:#8a9abb;margin-bottom:14px;">
+    클릭해서 펼치기. 각 이슈별로 영향받는 PID 목록 · 날짜별 추이 · 조사용 S3 키 샘플을 확인할 수 있습니다.
+  </div>
+  {issue_cards()}
 </div>
 
 <!-- 제외 항목 -->
@@ -464,6 +680,70 @@ const CD = {json.dumps(chart_data, ensure_ascii=False)};
       }}
     }}
   }});
+}})();
+
+// ── 이슈별 날짜 타임라인 차트 ──
+(function() {{
+  const tls = CD.timelines || {{}};
+  Object.keys(tls).forEach(iid => {{
+    const canvas = document.getElementById('tl-' + iid);
+    if (!canvas) return;
+    const tl = tls[iid];
+    if (!tl.dates || !tl.dates.length) return;
+    new Chart(canvas, {{
+      type: 'line',
+      data: {{
+        labels: tl.dates,
+        datasets: [{{
+          label: '평균 에러율 (%)',
+          data: tl.values,
+          borderColor: 'rgba(255,90,90,0.85)',
+          backgroundColor: 'rgba(255,90,90,0.15)',
+          tension: 0.25,
+          fill: true,
+          pointBackgroundColor: '#ff5a5a',
+          pointBorderColor: '#fff',
+          pointRadius: 3,
+        }}]
+      }},
+      options: {{
+        responsive: true,
+        plugins: {{
+          legend: {{ display:false }},
+          tooltip: {{
+            backgroundColor: '#132236',
+            titleColor: '#e8f0fe',
+            bodyColor: '#8a9abb',
+            callbacks: {{
+              afterLabel: ctx => `영향 PID: ${{tl.pids[ctx.dataIndex]}}대`
+            }}
+          }}
+        }},
+        scales: {{
+          x: {{ ticks:{{ color:'#8a9abb', maxRotation:45, minRotation:0, font:{{size:10}} }},
+                grid:{{ color:'rgba(255,255,255,0.04)' }} }},
+          y: {{ ticks:{{ color:'#8a9abb', font:{{size:10}}, callback:v=>v+'%' }},
+                grid:{{ color:'rgba(255,255,255,0.05)' }},
+                beginAtZero:true }}
+        }}
+      }}
+    }});
+  }});
+}})();
+
+// ── URL hash로 진입한 이슈 카드 자동 펼침 ──
+(function() {{
+  function openTarget() {{
+    const h = window.location.hash;
+    if (!h) return;
+    const el = document.querySelector(h);
+    if (el && el.tagName === 'DETAILS') {{
+      el.open = true;
+      el.scrollIntoView({{ behavior:'smooth', block:'start' }});
+    }}
+  }}
+  window.addEventListener('hashchange', openTarget);
+  setTimeout(openTarget, 100);
 }})();
 </script>
 </body>
