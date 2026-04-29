@@ -55,17 +55,57 @@ PIDS = [
     57034, 58020, 58149,
 ]
 
-# ── 분석 대상 컬럼 ────────────────────────────────────────────────
-BASE_COLUMNS = [
-    "unix_time", "ignit_status", "chg_conr_status_list", "em_speed_kmh",
-    "pack_curr", "pack_volt", "main_relay_status", "soc_display_rate",
-    "soc_rate", "mile_km", "cell_min_volt", "cell_max_volt", "cell_volt_dev",
-    "cell_min_volt_no", "cell_max_volt_no", "module_min_temp", "module_max_temp",
-    "module_avg_temp", "oper_second", "acc_chg_ah", "acc_dchg_ah",
-    "acc_chg_wh", "acc_dchg_wh", "pack_pwr", "ir", "soh_rate",
+# ── 분석 대상 컬럼 (사용자 첨부 이미지 기준 전체 59개 모니터링 컬럼) ──
+# DEFAULT_RULES에 없는 컬럼도 null / stuck / 분포 분석은 수행
+ALL_MONITORED_COLUMNS = [
+    # 식별/시간
+    "pid", "signal_kst_ts", "unix_time",
+    # 핵심 BMS 신호
+    "pack_curr", "pack_volt", "soc_display_rate", "soc_rate", "soh_rate", "pack_capa",
+    "module_min_temp", "module_max_temp", "module_avg_temp",
+    # 셀 / 모듈 / 리스트
+    "cell_volt_list", "module_temp_list", "temp_list",
+    "cell_max_volt", "cell_max_volt_no", "cell_min_volt", "cell_min_volt_no",
+    "cell_volt_dev",
+    "cell_max_soh_rate", "cell_max_soh_no", "cell_min_soh_rate", "cell_min_soh_no",
+    # 상태/릴레이
+    "main_relay_status", "ignit_status", "chg_conr_status_list",
+    "fast_chg_status", "fast_chg_relay_status",
+    "fan_status", "airbag_status",
+    "break_status", "gaspedal_status", "mission_status",
+    # 누적 / 운행
+    "oper_second", "mile_km", "em_speed_kmh",
+    "acc_chg_ah", "acc_dchg_ah", "acc_chg_wh", "acc_dchg_wh", "acc_use_wh",
+    # 절연/전력
+    "ir", "pack_pwr",
+    "allow_chg_pwr", "allow_dchg_pwr",
+    "allow_obc_pwr", "allow_obc_curr", "allow_obc_volt",
+    "obc_curr", "obc_volt",
+    # 보조/기타
+    "aux_battery_volt", "pack_cap_volt", "fan_hz", "chg_est_second",
+    # 위치
+    "lat", "lng",
+    # 리스트형 기타
+    "hvac_list", "motor_rpm_list",
 ]
+
+# 하위호환 — 다른 코드가 BASE_COLUMNS를 참조하는 경우 대비
+BASE_COLUMNS = ALL_MONITORED_COLUMNS
+
 DYNAMIC_PATTERNS = ("cell_voltage_", "battery_module_")
 META_COLUMNS = ("vehicle_model", "model_year", "model_trim", "fleet", "obd_co_id")
+
+# stuck 검사가 무의미한 컬럼:
+#   pid                  — 파일당 단일값 (식별자)
+#   signal_kst_ts/unix_time — 매 행 증가하는 시간
+#   lat/lng              — 위치 (정차 중이면 100% stuck — 정상)
+#   counter류            — 누적값/운행시간 (단조 증가 → stuck=정상)
+SKIP_STUCK_CHECK = {
+    "pid", "signal_kst_ts", "unix_time",
+    "lat", "lng",
+    "oper_second", "mile_km", "chg_est_second",
+    "acc_chg_ah", "acc_dchg_ah", "acc_chg_wh", "acc_dchg_wh", "acc_use_wh",
+}
 
 # DEFAULT_RULES 인덱스화 (col -> rule)
 RANGE_RULES = {r["column"]: r for r in DEFAULT_RULES if r.get("check") == "range" and "column" in r}
@@ -121,7 +161,7 @@ def analyze_file(s3, bucket, key):
     buf.seek(0)
 
     target_cols = [c for c in schema_cols
-                   if c in BASE_COLUMNS or c in META_COLUMNS
+                   if c in ALL_MONITORED_COLUMNS or c in META_COLUMNS
                    or any(c.startswith(p) for p in DYNAMIC_PATTERNS)]
     df = pd.read_parquet(buf, columns=target_cols)
     if len(df) == 0:
@@ -266,7 +306,7 @@ def classify(by_model):
         not_collected, mostly_null, partial = [], [], []
         schema_missing = []
 
-        all_cols = set(BASE_COLUMNS) | set(rec["col_stats"].keys())
+        all_cols = set(ALL_MONITORED_COLUMNS) | set(rec["col_stats"].keys())
         for col in sorted(all_cols):
             seen = rec["schema_seen"].get(col, 0)
             stats_list = rec["col_stats"].get(col, [])
@@ -298,26 +338,31 @@ def classify(by_model):
             elif 50 <= avg_null < SUSPICIOUS_NULL_LO:
                 partial.append({"column": col, "avg_null": round(avg_null, 2)})
 
-            # (c) stuck 값 (col이 충분한 비-null을 가질 때만)
-            stuck_ratios = [x["stuck_ratio"] for x in stats_list if x["null_rate"] < 50]
-            if stuck_ratios:
-                avg_stuck = _avg(stuck_ratios)
-                if avg_stuck >= STUCK_THRESHOLD:
-                    sample_value = next(
-                        (x["stuck_value"] for x in stats_list
-                         if x["null_rate"] < 50 and x["stuck_value"] is not None),
-                        None,
-                    )
-                    interp = ""
-                    if col == "ignit_status" and str(sample_value) == "0":
-                        interp = " (IGN 신호 미수신 의심)"
-                    elif col == "main_relay_status" and str(sample_value) == "0":
-                        interp = " (메인 릴레이 항상 OFF)"
-                    critical.append({
-                        "type":   "stuck_value",
-                        "column": col,
-                        "detail": f"단일 값 '{sample_value}'이 {avg_stuck*100:.1f}% 차지{interp}",
-                    })
+            # (c) stuck 값 — 식별자/시간/위치/카운터는 의미 없으므로 스킵
+            if col not in SKIP_STUCK_CHECK:
+                stuck_ratios = [x["stuck_ratio"] for x in stats_list if x["null_rate"] < 50]
+                if stuck_ratios:
+                    avg_stuck = _avg(stuck_ratios)
+                    if avg_stuck >= STUCK_THRESHOLD:
+                        sample_value = next(
+                            (x["stuck_value"] for x in stats_list
+                             if x["null_rate"] < 50 and x["stuck_value"] is not None),
+                            None,
+                        )
+                        interp = ""
+                        if col == "ignit_status" and str(sample_value) == "0":
+                            interp = " (IGN 신호 미수신 의심)"
+                        elif col == "main_relay_status" and str(sample_value) == "0":
+                            interp = " (메인 릴레이 항상 OFF)"
+                        elif col == "fan_status" and str(sample_value) == "0":
+                            interp = " (쿨링팬 항상 OFF)"
+                        elif col == "airbag_status" and str(sample_value) != "0":
+                            interp = " (에어백 알람 지속)"
+                        critical.append({
+                            "type":   "stuck_value",
+                            "column": col,
+                            "detail": f"단일 값 '{sample_value}'이 {avg_stuck*100:.1f}% 차지{interp}",
+                        })
 
             # (d) 범위 위반
             rv = [x["range_violation_rate"] for x in stats_list
@@ -531,8 +576,14 @@ def main():
         dates.append(cur.strftime("%Y-%m-%d"))
         cur += timedelta(days=1)
 
+    rule_cols = (set(RANGE_RULES.keys()) | set(VALID_RULES.keys())) & set(ALL_MONITORED_COLUMNS)
+    monitor_only = set(ALL_MONITORED_COLUMNS) - rule_cols
+
     print(f"버킷: {args.bucket}  ·  날짜: {args.start} ~ {args.end}  ·  PID {len(PIDS)}개")
     print(f"PID당 샘플: {args.samples_per_pid}개")
+    print(f"분석 대상 컬럼: {len(ALL_MONITORED_COLUMNS)}개 "
+          f"(검증 규칙 적용 {len(rule_cols)} · 모니터링만 {len(monitor_only)})")
+    print(f"stuck 검사 제외: {len(SKIP_STUCK_CHECK)}개 (식별자/시간/위치/카운터)")
     print()
 
     s3 = make_s3_client()
